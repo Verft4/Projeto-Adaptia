@@ -68,6 +68,14 @@ class _LoginPageState extends State<LoginPage> {
                   obscureText: true,
                   validator: Validators.password,
                 ),
+                const SizedBox(height: 4),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: TextButton(
+                    onPressed: () => context.go(AppRoutes.forgotPassword),
+                    child: const Text('Esqueceu a senha? Clique aqui'),
+                  ),
+                ),
                 const SizedBox(height: 32),
                 BlocBuilder<AuthCubit, AuthState>(
                   builder: (context, state) {
