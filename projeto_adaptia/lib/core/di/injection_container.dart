@@ -5,6 +5,9 @@ import '../../features/auth/domain/repositories/auth_repository.dart';
 import '../../features/auth/domain/usecases/login_usecase.dart';
 import '../../features/auth/domain/usecases/register_usecase.dart';
 import '../../features/auth/presentation/cubit/auth_cubit.dart';
+import '../../features/auth/data/datasources/firebase.dart';
+import '../../features/auth/domain/usecases/login_google_usecase.dart';
+
 
 final sl = GetIt.instance;
 
@@ -13,15 +16,18 @@ void setupDependencies() {
   sl.registerLazySingleton<AuthLocalDatasource>(
     () => AuthLocalDatasourceImpl(),
   );
+  sl.registerLazySingleton<AuthService>(() => AuthService());
 
   // ─── Repositories ──────────────────────────────────────
   sl.registerLazySingleton<AuthRepository>(
-    () => AuthRepositoryImpl(datasource: sl()),
+    () => AuthRepositoryImpl(datasource: sl(), authService: sl())
+    ,
   );
 
   // ─── Usecases ──────────────────────────────────────────
   sl.registerLazySingleton(() => RegisterUsecase(repository: sl()));
   sl.registerLazySingleton(() => LoginUsecase(repository: sl()));
+  sl.registerLazySingleton(() => LoginGoogleUseCase(repository: sl()));
 
   // ─── Cubits ────────────────────────────────────────────
   // factory: cria uma nova instância toda vez que for solicitado
@@ -29,6 +35,7 @@ void setupDependencies() {
     () => AuthCubit(
       registerUsecase: sl(),
       loginUsecase: sl(),
+      loginWithGoogleUsecase: sl(),
     ),
   );
 }

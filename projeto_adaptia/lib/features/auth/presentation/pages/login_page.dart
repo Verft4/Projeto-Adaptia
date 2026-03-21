@@ -69,15 +69,40 @@ class _LoginPageState extends State<LoginPage> {
                   validator: Validators.password,
                 ),
                 const SizedBox(height: 32),
+                
+              
                 BlocBuilder<AuthCubit, AuthState>(
                   builder: (context, state) {
-                    return AuthButton(
-                      label: 'Entrar',
-                      isLoading: state is AuthLoading,
-                      onPressed: _submit,
+                    final isLoading = state is AuthLoading;
+                    
+                    return Column(
+                      children: [
+                        
+                        AuthButton(
+                          label: 'Entrar',
+                          isLoading: isLoading,
+                          onPressed: _submit,
+                        ),
+                        
+                        const SizedBox(height: 16),
+                        
+                        
+                        SizedBox(
+                          width: double.infinity,
+                          height: 50, 
+                          child: OutlinedButton.icon(
+                            icon: const Icon(Icons.g_mobiledata, size: 32),
+                            label: const Text('Continuar com o Google'),
+                            onPressed: isLoading
+                                ? null 
+                                : () => context.read<AuthCubit>().loginWithGoogle(),
+                          ),
+                        ),
+                      ],
                     );
                   },
                 ),
+                
                 const SizedBox(height: 16),
 
                 // Link para cadastro

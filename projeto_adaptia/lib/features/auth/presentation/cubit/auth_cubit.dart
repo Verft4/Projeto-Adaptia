@@ -4,12 +4,14 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../domain/usecases/register_usecase.dart';
 import '../../domain/usecases/login_usecase.dart';
 import 'auth_state.dart';
+import '../../domain/usecases/login_google_usecase.dart';
 
 class AuthCubit extends Cubit<AuthState> {
   final RegisterUsecase registerUsecase;
   final LoginUsecase loginUsecase;
+  final LoginGoogleUseCase loginWithGoogleUsecase;
 
-  AuthCubit({required this.registerUsecase, required this.loginUsecase})
+  AuthCubit({required this.registerUsecase, required this.loginUsecase, required this.loginWithGoogleUsecase})
     : super(AuthInitial());
 
   Future<void> register({
@@ -34,4 +36,14 @@ class AuthCubit extends Cubit<AuthState> {
       emit(AuthError(e.toString()));
     }
   }
+
+  Future<void> loginWithGoogle() async {
+    try {
+      final user = await loginWithGoogleUsecase(); // O email não é necessário para login com Google
+      emit(AuthSuccess(user));
+    } catch (e) {
+      emit(AuthError(e.toString()));
+    }
+  }
 }
+
