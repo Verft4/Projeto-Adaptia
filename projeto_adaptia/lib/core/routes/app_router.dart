@@ -15,7 +15,7 @@ import '../../features/auth/presentation/pages/reset_password_page.dart';
 import 'package:flutter/material.dart' show Scaffold, Center, Text;
 
 final appRouter = GoRouter(
-  initialLocation: AppRoutes.register,
+  initialLocation: AppRoutes.login,
   routes: [
     GoRoute(
       path: AppRoutes.register,
