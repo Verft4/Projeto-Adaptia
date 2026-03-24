@@ -106,8 +106,8 @@ class _RegisterPageState extends State<RegisterPage> {
                 const SizedBox(height: 16),
 
                 
-                TextButton(
-                  onPressed: () => context.pop(), 
+                  TextButton(
+                  onPressed: () => context.go(AppRoutes.login),
                   child: const Text('Já tem uma conta? Entre aqui'),
                 ),
               ],
