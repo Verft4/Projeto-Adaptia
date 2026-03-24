@@ -38,7 +38,13 @@ android {
         }
     }
 }
-
+dependencies {
+    
+    implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk7:1.8.0")
+    implementation("com.google.firebase:firebase-analytics-ktx:21.2.0")
+   
+}
 flutter {
     source = "../.."
 }
+apply(plugin = "com.google.gms.google-services")
