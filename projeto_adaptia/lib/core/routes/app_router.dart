@@ -1,8 +1,9 @@
 // configuração do GoRouter
-
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import 'package:projeto_adaptia/features/auth/presentation/pages/forgot_password_page.dart';
+import 'package:projeto_adaptia/features/auth/presentation/pages/reset_password_page.dart';
 import '../di/injection_container.dart';
 import '../../features/auth/presentation/cubit/auth_cubit.dart';
 import '../../features/auth/presentation/pages/register_page.dart';
@@ -29,6 +30,22 @@ final appRouter = GoRouter(
           (context, state) => BlocProvider(
             create: (_) => sl<AuthCubit>(),
             child: const LoginPage(),
+          ),
+    ),
+    GoRoute(
+      path: AppRoutes.forgotPassword,
+      builder:
+          (context, state) => BlocProvider(
+            create: (_) => sl<AuthCubit>(),
+            child: const ForgotPasswordPage(),
+          ),
+    ),
+    GoRoute(
+      path: AppRoutes.resetPassword,
+      builder:
+          (context, state) => BlocProvider(
+            create: (_) => sl<AuthCubit>(),
+            child: const ResetPasswordPage(),
           ),
     ),
     GoRoute(

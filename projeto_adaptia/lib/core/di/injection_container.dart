@@ -1,4 +1,6 @@
 import 'package:get_it/get_it.dart';
+import 'package:projeto_adaptia/features/auth/domain/usecases/reset_password_usecase.dart';
+import 'package:projeto_adaptia/features/auth/domain/usecases/send_password_reset_email_usecase.dart';
 import '../../features/auth/data/datasources/auth_local_datasource.dart';
 import '../../features/auth/data/repositories/auth_repository_impl.dart';
 import '../../features/auth/domain/repositories/auth_repository.dart';
@@ -22,6 +24,8 @@ void setupDependencies() {
   // ─── Usecases ──────────────────────────────────────────
   sl.registerLazySingleton(() => RegisterUsecase(repository: sl()));
   sl.registerLazySingleton(() => LoginUsecase(repository: sl()));
+  sl.registerLazySingleton(() => SendPasswordResetEmailUsecase(repository: sl()));
+  sl.registerLazySingleton(() => ResetPasswordUsecase(repository: sl()));
 
   // ─── Cubits ────────────────────────────────────────────
   // factory: cria uma nova instância toda vez que for solicitado
@@ -29,8 +33,12 @@ void setupDependencies() {
     () => AuthCubit(
       registerUsecase: sl(),
       loginUsecase: sl(),
+      sendPasswordResetEmailUsecase: sl(),
+    resetPasswordUsecase: sl(), 
     ),
   );
+
+  
 }
 
 /*
