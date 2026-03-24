@@ -44,7 +44,7 @@ class _RegisterPageState extends State<RegisterPage> {
       body: BlocListener<AuthCubit, AuthState>(
         listener: (context, state) {
           if (state is AuthSuccess) {
-            context.go(AppRoutes.dashboard);
+            context.go(AppRoutes.login);
           } else if (state is AuthError) {
             ScaffoldMessenger.of(
               context,
