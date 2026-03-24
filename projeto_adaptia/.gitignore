@@ -45,3 +45,9 @@ app.*.map.json
 /android/app/release
 
 .env
+
+
+*/flutter/generated_plugin_registrant.cc
+**/flutter/generated_plugin_registrant.h
+**/flutter/generated_plugins.cmake
+**/Flutter/GeneratedPluginRegistrant.swift
