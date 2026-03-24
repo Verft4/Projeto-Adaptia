@@ -3,19 +3,19 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:projeto_adaptia/features/auth/domain/usecases/reset_password_usecase.dart';
 import 'package:projeto_adaptia/features/auth/domain/usecases/send_password_reset_email_usecase.dart';
-import 'package:projeto_adaptia/features/auth/presentation/pages/reset_password_page.dart';
 import '../../domain/usecases/register_usecase.dart';
 import '../../domain/usecases/login_usecase.dart';
 import 'auth_state.dart';
+import '../../domain/usecases/login_google_usecase.dart';
 
 class AuthCubit extends Cubit<AuthState> {
   final RegisterUsecase registerUsecase;
   final LoginUsecase loginUsecase;
+  final LoginGoogleUseCase loginWithGoogleUsecase;
   final SendPasswordResetEmailUsecase sendPasswordResetEmailUsecase;
   final ResetPasswordUsecase resetPasswordUsecase;
 
-  AuthCubit({required this.registerUsecase, required this.loginUsecase, required this.sendPasswordResetEmailUsecase,
-  required this.resetPasswordUsecase,})
+  AuthCubit({required this.registerUsecase, required this.loginUsecase, required this.loginWithGoogleUsecase, required this.sendPasswordResetEmailUsecase, required this.resetPasswordUsecase})
     : super(AuthInitial());
 
   Future<void> register({
@@ -41,6 +41,14 @@ class AuthCubit extends Cubit<AuthState> {
     }
   }
 
+  Future<void> loginWithGoogle() async {
+    try {
+      final user = await loginWithGoogleUsecase(); // O email não é necessário para login com Google
+      emit(AuthSuccess(user));
+    } catch (e) {
+      emit(AuthError(e.toString()));
+    }
+  }
   Future<void> sendPasswordResetEmail({required String email}) async {
   emit(AuthLoading());
   try {
@@ -61,3 +69,4 @@ Future<void> resetPassword({required String newPassword}) async {
   }
 }
 }
+

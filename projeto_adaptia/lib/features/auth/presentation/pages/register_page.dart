@@ -1,4 +1,3 @@
-// Tela de cadastro
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
@@ -44,7 +43,7 @@ class _RegisterPageState extends State<RegisterPage> {
       body: BlocListener<AuthCubit, AuthState>(
         listener: (context, state) {
           if (state is AuthSuccess) {
-            context.go(AppRoutes.login);
+            context.go(AppRoutes.dashboard);
           } else if (state is AuthError) {
             ScaffoldMessenger.of(
               context,
@@ -70,14 +69,46 @@ class _RegisterPageState extends State<RegisterPage> {
                   validator: Validators.password,
                 ),
                 const SizedBox(height: 32),
+                
+                
                 BlocBuilder<AuthCubit, AuthState>(
                   builder: (context, state) {
-                    return AuthButton(
-                      label: 'Cadastrar',
-                      isLoading: state is AuthLoading,
-                      onPressed: _submit,
+                    final isLoading = state is AuthLoading;
+                    
+                    return Column(
+                      children: [
+                        
+                        AuthButton(
+                          label: 'Cadastrar',
+                          isLoading: isLoading,
+                          onPressed: _submit,
+                        ),
+                        
+                        const SizedBox(height: 16),
+                        
+                        
+                        SizedBox(
+                          width: double.infinity,
+                          height: 50,
+                          child: OutlinedButton.icon(
+                            icon: const Icon(Icons.g_mobiledata, size: 32),
+                            label: const Text('Continuar com o Google'),
+                            onPressed: isLoading
+                                ? null 
+                                : () => context.read<AuthCubit>().loginWithGoogle(),
+                          ),
+                        ),
+                      ],
                     );
                   },
+                ),
+
+                const SizedBox(height: 16),
+
+                
+                  TextButton(
+                  onPressed: () => context.go(AppRoutes.login),
+                  child: const Text('Já tem uma conta? Entre aqui'),
                 ),
               ],
             ),
