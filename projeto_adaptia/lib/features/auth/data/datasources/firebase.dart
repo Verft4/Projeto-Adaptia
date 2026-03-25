@@ -52,9 +52,7 @@ class AuthService {
 
 <<<<<<< HEAD
 =======
-      if (googleUser == null) {
-        return 'Login cancelado pelo usuário.';
-      }
+      
 
 >>>>>>> main
       

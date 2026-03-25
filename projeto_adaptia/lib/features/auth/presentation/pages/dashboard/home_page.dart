@@ -4,7 +4,7 @@ class HomePage extends StatelessWidget {
 <<<<<<< HEAD
   const HomePage({super.key});
 =======
-  const HomePage({Key? key}) : super(key: key);
+  const HomePage({super.key});
 >>>>>>> main
 
   @override
