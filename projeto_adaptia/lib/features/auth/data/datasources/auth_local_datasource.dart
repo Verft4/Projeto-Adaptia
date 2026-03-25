@@ -14,7 +14,6 @@ abstract class AuthLocalDatasource {
 
 class AuthLocalDatasourceImpl implements AuthLocalDatasource {
   static const _usersKey = 'registered_users';
-  static const _loggedUserKey = 'logged_user';
 
   @override
   Future<UserModel> register({

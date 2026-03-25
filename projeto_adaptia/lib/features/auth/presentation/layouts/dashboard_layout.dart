@@ -1,8 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-<<<<<<< HEAD
-=======
->>>>>>> main
 
 class DashboardLayout extends StatelessWidget {
   final Widget child;

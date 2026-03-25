@@ -49,12 +49,6 @@ class AuthService {
 
       
       final GoogleSignInAccount googleUser = await _googleSignIn.authenticate();
-
-<<<<<<< HEAD
-=======
-      
-
->>>>>>> main
       
       final List<String> scopes = ['email', 'profile'];
 
