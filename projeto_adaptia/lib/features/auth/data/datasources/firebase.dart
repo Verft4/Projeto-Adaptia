@@ -50,10 +50,13 @@ class AuthService {
       
       final GoogleSignInAccount googleUser = await _googleSignIn.authenticate();
 
+<<<<<<< HEAD
+=======
       if (googleUser == null) {
         return 'Login cancelado pelo usuário.';
       }
 
+>>>>>>> main
       
       final List<String> scopes = ['email', 'profile'];
 
