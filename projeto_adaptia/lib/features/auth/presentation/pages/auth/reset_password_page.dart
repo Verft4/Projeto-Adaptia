@@ -3,12 +3,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
-import '../../../../core/routes/app_routes.dart';
-import '../../../../core/utils/validators.dart';
-import '../widgets/auth_text_field.dart';
-import '../widgets/auth_button.dart';
-import '../cubit/auth_cubit.dart';
-import '../cubit/auth_state.dart';
+import '../../../../../core/routes/app_routes.dart';
+import '../../../../../core/utils/validators.dart';
+import '../../widgets/auth_text_field.dart';
+import '../../widgets/auth_button.dart';
+import '../../cubit/auth_cubit.dart';
+import '../../cubit/auth_state.dart';
 
 class ResetPasswordPage extends StatefulWidget {
   const ResetPasswordPage({super.key});
