@@ -110,6 +110,13 @@ class _LoginPageState extends State<LoginPage> {
                   onPressed: () => context.go(AppRoutes.register),
                   child: const Text('Não tem conta? Cadastre-se'),
                 ),
+
+                // TODO: Remover
+                const SizedBox(height: 16),
+                TextButton(
+                  onPressed: () => context.go(AppRoutes.dashboard),
+                  child: const Text('Ir para a dashboard'),
+                ),
               ],
             ),
           ),

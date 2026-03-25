@@ -3,6 +3,7 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import '../di/injection_container.dart';
+import '../../features/auth/presentation/pages/splash_page.dart';
 import '../../features/auth/presentation/layouts/auth_layout.dart';
 import '../../features/auth/presentation/layouts/dashboard_layout.dart';
 import '../../features/auth/presentation/layouts/onboarding_layout.dart';
@@ -20,8 +21,14 @@ import '../../features/auth/presentation/pages/dashboard/profile_page.dart';
 import 'app_routes.dart';
 
 final appRouter = GoRouter(
-  initialLocation: AppRoutes.onboarding,
+  initialLocation: AppRoutes.splash,
   routes: [
+    // Splash Screen
+    GoRoute(
+      path: AppRoutes.splash,
+      builder: (context, state) => const SplashPage(),
+    ),
+
     // Onboarding Flow
     GoRoute(
       path: AppRoutes.onboarding,

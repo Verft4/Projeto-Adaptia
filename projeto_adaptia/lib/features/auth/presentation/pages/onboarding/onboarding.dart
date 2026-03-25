@@ -27,10 +27,17 @@ class OnboardingPage extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 48),
-          ElevatedButton(
-            onPressed: () => context.go('/login'),
-            child: const Text('Começar'),
-          ),
+          SizedBox(
+            width: double.infinity,
+            height: 56,
+            child: ElevatedButton(
+              onPressed: () => context.go('/login'),
+              child: const Text(
+                'Começar',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w400)
+              ),
+            ),
+          )
         ],
       ),
     );
