@@ -9,6 +9,7 @@ class AppTheme {
         primary: AppColors.primary,
         secondary: AppColors.secondary,
         tertiary: AppColors.tertiary,
+        onSurface: AppColors.textPrimary,
       ),
 
       bottomNavigationBarTheme: const BottomNavigationBarThemeData(
