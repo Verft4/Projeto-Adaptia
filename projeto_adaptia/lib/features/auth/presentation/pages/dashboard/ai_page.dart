@@ -1,11 +1,7 @@
 import 'package:flutter/material.dart';
 
-class HomePage extends StatelessWidget {
-<<<<<<< HEAD
-  const HomePage({super.key});
-=======
-  const HomePage({Key? key}) : super(key: key);
->>>>>>> main
+class AIPage extends StatelessWidget {
+  const AIPage({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -15,11 +11,10 @@ class HomePage extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Dashboard Home',
+            'IA',
             style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
           ),
           SizedBox(height: 16),
-          Text('Bem-vindo ao seu dashboard! 🚀'),
         ],
       ),
     );

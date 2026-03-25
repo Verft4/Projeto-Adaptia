@@ -1,22 +1,21 @@
-// Tela de cadastro
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
-import '../../../../core/routes/app_routes.dart';
-import '../../../../core/utils/validators.dart';
-import '../widgets/auth_text_field.dart';
-import '../widgets/auth_button.dart';
-import '../cubit/auth_cubit.dart';
-import '../cubit/auth_state.dart';
+import '../../../../../core/routes/app_routes.dart';
+import '../../../../../core/utils/validators.dart';
+import '../../widgets/auth_text_field.dart';
+import '../../widgets/auth_button.dart';
+import '../../cubit/auth_cubit.dart';
+import '../../cubit/auth_state.dart';
 
-class RegisterPage extends StatefulWidget {
-  const RegisterPage({super.key});
+class LoginPage extends StatefulWidget {
+  const LoginPage({super.key});
 
   @override
-  State<RegisterPage> createState() => _RegisterPageState();
+  State<LoginPage> createState() => _LoginPageState();
 }
 
-class _RegisterPageState extends State<RegisterPage> {
+class _LoginPageState extends State<LoginPage> {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
@@ -30,7 +29,7 @@ class _RegisterPageState extends State<RegisterPage> {
 
   void _submit() {
     if (_formKey.currentState?.validate() ?? false) {
-      context.read<AuthCubit>().register(
+      context.read<AuthCubit>().login(
         email: _emailController.text.trim(),
         password: _passwordController.text,
       );
@@ -40,7 +39,7 @@ class _RegisterPageState extends State<RegisterPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Criar conta')),
+      appBar: AppBar(title: const Text('Entrar')),
       body: BlocListener<AuthCubit, AuthState>(
         listener: (context, state) {
           if (state is AuthSuccess) {
@@ -70,14 +69,46 @@ class _RegisterPageState extends State<RegisterPage> {
                   validator: Validators.password,
                 ),
                 const SizedBox(height: 32),
+                
+              
                 BlocBuilder<AuthCubit, AuthState>(
                   builder: (context, state) {
-                    return AuthButton(
-                      label: 'Cadastrar',
-                      isLoading: state is AuthLoading,
-                      onPressed: _submit,
+                    final isLoading = state is AuthLoading;
+                    
+                    return Column(
+                      children: [
+                        
+                        AuthButton(
+                          label: 'Entrar',
+                          isLoading: isLoading,
+                          onPressed: _submit,
+                        ),
+                        
+                        const SizedBox(height: 16),
+                        
+                        
+                        SizedBox(
+                          width: double.infinity,
+                          height: 50, 
+                          child: OutlinedButton.icon(
+                            icon: const Icon(Icons.g_mobiledata, size: 32),
+                            label: const Text('Continuar com o Google'),
+                            onPressed: isLoading
+                                ? null 
+                                : () => context.read<AuthCubit>().loginWithGoogle(),
+                          ),
+                        ),
+                      ],
                     );
                   },
+                ),
+                
+                const SizedBox(height: 16),
+
+                // Link para cadastro
+                TextButton(
+                  onPressed: () => context.go(AppRoutes.register),
+                  child: const Text('Não tem conta? Cadastre-se'),
                 ),
               ],
             ),

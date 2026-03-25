@@ -9,4 +9,7 @@ abstract class AuthRepository {
   });
 
   Future<UserEntity> login({required String email, required String password});
+  Future<UserEntity> loginWithGoogle();
+  Future<void> sendPasswordResetEmail({required String email});
+  Future<void> resetPassword({required String newPassword});
 }

@@ -7,6 +7,9 @@ import '../models/user_model.dart';
 abstract class AuthLocalDatasource {
   Future<UserModel> register({required String email, required String password});
   Future<UserModel> login({required String email, required String password});
+  Future<UserModel> loginWithGoogle({required String email});
+  Future<void> sendPasswordResetEmail({required String email});
+  Future<void> resetPassword({required String newPassword});
 }
 
 class AuthLocalDatasourceImpl implements AuthLocalDatasource {
@@ -65,4 +68,48 @@ class AuthLocalDatasourceImpl implements AuthLocalDatasource {
 
     return UserModel.fromJson(userMap);
   }
+  @override
+Future<UserModel> loginWithGoogle({required String email}) async {
+  final prefs = await SharedPreferences.getInstance();
+  final usersJson = prefs.getString(_usersKey);
+  final List<Map<String, dynamic>> users = usersJson != null
+      ? List<Map<String, dynamic>>.from(jsonDecode(usersJson))
+      : [];
+
+  try {
+    // Tenta encontrar o usuário pelo e-mail
+    final existingUserMap = users.firstWhere((u) => u['email'] == email);
+    return UserModel.fromJson(existingUserMap);
+  } catch (_) {
+    // Se não encontrar, cadastra o usuário no banco local automaticamente
+    final newUser = UserModel(
+      id: DateTime.now().millisecondsSinceEpoch.toString(),
+      email: email,
+    );
+    // Salva com uma "senha" dummy para não quebrar a tipagem local
+    users.add({...newUser.toJson(), 'password': 'google_oauth_user'});
+    await prefs.setString(_usersKey, jsonEncode(users));
+    
+    return newUser;
+  }
 }
+@override
+  Future<void> sendPasswordResetEmail({required String email}) async {
+    // TODO: substituir pela chamada real do Firebase
+    // Firebase: await FirebaseAuth.instance.sendPasswordResetEmail(email: email);
+    
+    // Mock: simula um delay de rede e confirma
+    await Future.delayed(const Duration(seconds: 1));
+  }
+
+  @override
+  Future<void> resetPassword({required String newPassword}) async {    
+    // TODO: substituir pela chamada real do Firebase
+    // Firebase: await FirebaseAuth.instance.currentUser?.updatePassword(newPassword);
+    
+    // Mock: simula um delay de rede e confirma
+    await Future.delayed(const Duration(seconds: 1));
+  }
+
+}
+
