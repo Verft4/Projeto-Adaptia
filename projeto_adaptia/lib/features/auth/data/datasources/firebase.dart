@@ -10,18 +10,24 @@ class AuthService {
   
   Future<String?> login({required String email, required String password}) async {
     try {
-      await _auth.signInWithEmailAndPassword(email: email, password: password);
-      return null;
-    } on FirebaseAuthException catch (e) {
-      if (e.code == 'user-not-found') {
-        return 'Nenhum usuário encontrado para esse e-mail.';
-      } else if (e.code == 'wrong-password') {
-        return 'Senha incorreta.';
-      }
-      return 'Erro ao logar: ${e.message}';
-    } catch (e) {
-      return 'Erro desconhecido: $e';
+    await _auth.signInWithEmailAndPassword(email: email, password: password);
+    return null; // Sucesso
+  } on FirebaseAuthException catch (e) {
+    
+    if (e.code == 'invalid-credential' || e.code == 'INVALID_LOGIN_CREDENTIALS') {
+      return 'E-mail ou senha incorretos. (Se você usou o Google para criar a conta, faça login pelo Google).';
+    } 
+    else if (e.code == 'user-not-found') {
+      return 'Nenhum usuário encontrado para esse e-mail.';
+    } 
+    else if (e.code == 'wrong-password') {
+      return 'Senha incorreta.';
     }
+    
+    return 'Erro ao logar: ${e.message}';
+  } catch (e) {
+    return 'Erro desconhecido: $e';
+  }
   }
 
   

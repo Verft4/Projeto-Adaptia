@@ -71,25 +71,31 @@ class AuthLocalDatasourceImpl implements AuthLocalDatasource {
 Future<UserModel> loginWithGoogle({required String email}) async {
   final prefs = await SharedPreferences.getInstance();
   final usersJson = prefs.getString(_usersKey);
+  
   final List<Map<String, dynamic>> users = usersJson != null
       ? List<Map<String, dynamic>>.from(jsonDecode(usersJson))
       : [];
 
-  try {
-    // Tenta encontrar o usuário pelo e-mail
-    final existingUserMap = users.firstWhere((u) => u['email'] == email);
+  // Procura o usuário. Retorna null se não encontrar, em vez de dar erro.
+  final existingUserMap = users.where((u) => u['email'] == email).firstOrNull;
+
+  if (existingUserMap != null) {
+    // Usuário encontrado! Retorna os dados dele.
     return UserModel.fromJson(existingUserMap);
-  } catch (_) {
-    // Se não encontrar, cadastra o usuário no banco local automaticamente
+  } else {
+    // Usuário NÃO encontrado. Cadastra no banco local automaticamente.
     final newUser = UserModel(
       id: DateTime.now().millisecondsSinceEpoch.toString(),
       email: email,
     );
+    
     // Salva com uma "senha" dummy para não quebrar a tipagem local
     users.add({...newUser.toJson(), 'password': 'google_oauth_user'});
     await prefs.setString(_usersKey, jsonEncode(users));
     
     return newUser;
+    
+    
   }
 }
 @override
