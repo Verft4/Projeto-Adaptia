@@ -14,6 +14,14 @@
       },
       "oauth_client": [
         {
+          "client_id": "453007687926-imjhaltsjk1hdfbo1m75ducr6b3f28s3.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.projeto_adaptia",
+            "certificate_hash": "ae3e8d49a7ed89d1b069e83e1944060f70ef6b9d"
+          }
+        },
+        {
           "client_id": "453007687926-r0f2qup1smc5t4ol3ijm0c38us9811n9.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {
