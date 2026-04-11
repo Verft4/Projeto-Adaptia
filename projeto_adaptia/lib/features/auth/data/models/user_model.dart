@@ -6,21 +6,16 @@ class UserModel extends UserEntity {
   const UserModel({
     required super.id,
     required super.email,
+    required super.nome, // 👈
   });
 
-  factory UserModel.fromJson(Map<String, dynamic> json) {
-    return UserModel(
-      id: json['id'] as String,
-      email: json['email'] as String,
-    );
-  }
+  factory UserModel.fromJson(Map<String, dynamic> json) => UserModel(
+    id: json['uid'] as String, // uid = chave no Firestore
+    email: json['email'] as String,
+    nome: json['nome'] as String? ?? '',
+  );
 
-  Map<String, dynamic> toJson() {
-    return {
-      'id': id,
-      'email': email,
-    };
-  }
+  Map<String, dynamic> toJson() => {'uid': id, 'email': email, 'nome': nome};
 }
 
 /*
