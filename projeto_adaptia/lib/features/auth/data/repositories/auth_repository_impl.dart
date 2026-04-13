@@ -1,14 +1,11 @@
-// Implementação concreta
-
-import 'package:firebase_auth/firebase_auth.dart';
 import '../../domain/entities/user_entity.dart';
 import '../../domain/repositories/auth_repository.dart';
-import '../datasources/auth_local_datasource.dart';
+import '../datasources/auth_remote_datasource.dart';
 import '../datasources/firebase.dart';
 
 class AuthRepositoryImpl implements AuthRepository {
-  final AuthLocalDatasource datasource; 
-  final AuthService authService;         
+  final AuthRemoteDatasource datasource;
+  final AuthService authService;
 
   const AuthRepositoryImpl({
     required this.datasource,
@@ -21,60 +18,37 @@ class AuthRepositoryImpl implements AuthRepository {
     required String password,
   }) async {
     final error = await authService.login(email: email, password: password);
-    
-    if (error != null) {
-      
-      throw Exception(error);
-    }
-
-    
-    return await datasource.login(email: email, password: password);
+    if (error != null) throw Exception(error);
+    return await datasource.getUsuarioAtual();
   }
-  
 
   @override
   Future<UserEntity> register({
     required String email,
     required String password,
+    required String nome,
   }) async {
-    
-    final error = await authService.registrar(email: email, password: password);
-    
-    if (error != null) {
-      throw Exception(error);
-    }
-
-    
-    return await datasource.register(email: email, password: password);
+    final error = await authService.registrar(
+      email: email,
+      password: password,
+      nome: nome,
+    );
+    if (error != null) throw Exception(error);
+    return await datasource.getUsuarioAtual();
   }
+
   @override
   Future<UserEntity> loginWithGoogle() async {
-    // 1. Chama o Firebase Auth
     final error = await authService.loginComGoogle();
-    
-    if (error != null) {
-      throw Exception(error);
-    }
-
-    // 2. Pega os dados do usuário logado no Firebase
-    final firebaseUser = FirebaseAuth.instance.currentUser;
-    if (firebaseUser == null || firebaseUser.email == null) {
-      throw Exception('Erro ao recuperar os dados do Google.');
-    }
-
-    // 3. Sincroniza/Loga no banco local
-    return await datasource.loginWithGoogle(email: firebaseUser.email!);
+    if (error != null) throw Exception(error);
+    return await datasource.getUsuarioAtual();
   }
+
   @override
-    Future<void> sendPasswordResetEmail({required String email}) {
-      return datasource.sendPasswordResetEmail(email: email);
-    }
+  Future<void> sendPasswordResetEmail({required String email}) =>
+      authService.sendPasswordResetEmail(email: email);
 
-    @override
-    Future<void> resetPassword({required String newPassword}) {
-      return datasource.resetPassword(newPassword: newPassword);
-    }
-  
+  @override
+  Future<void> resetPassword({required String newPassword}) =>
+      authService.resetPassword(newPassword: newPassword);
 }
-
- 

@@ -17,11 +17,13 @@ class RegisterPage extends StatefulWidget {
 
 class _RegisterPageState extends State<RegisterPage> {
   final _formKey = GlobalKey<FormState>();
+  final _nomeController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
 
   @override
   void dispose() {
+    _nomeController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
     super.dispose();
@@ -30,6 +32,7 @@ class _RegisterPageState extends State<RegisterPage> {
   void _submit() {
     if (_formKey.currentState?.validate() ?? false) {
       context.read<AuthCubit>().register(
+        nome: _nomeController.text.trim(),
         email: _emailController.text.trim(),
         password: _passwordController.text,
       );
@@ -57,6 +60,12 @@ class _RegisterPageState extends State<RegisterPage> {
             child: Column(
               children: [
                 AuthTextField(
+                  controller: _nomeController,
+                  label: 'Nome',
+                  validator: Validators.name, // veja nota abaixo
+                ),
+                const SizedBox(height: 16),
+                AuthTextField(
                   controller: _emailController,
                   label: 'E-mail',
                   validator: Validators.email,
@@ -69,33 +78,34 @@ class _RegisterPageState extends State<RegisterPage> {
                   validator: Validators.password,
                 ),
                 const SizedBox(height: 32),
-                
-                
+
                 BlocBuilder<AuthCubit, AuthState>(
                   builder: (context, state) {
                     final isLoading = state is AuthLoading;
-                    
+
                     return Column(
                       children: [
-                        
                         AuthButton(
                           label: 'Cadastrar',
                           isLoading: isLoading,
                           onPressed: _submit,
                         ),
-                        
+
                         const SizedBox(height: 16),
-                        
-                        
+
                         SizedBox(
                           width: double.infinity,
                           height: 50,
                           child: OutlinedButton.icon(
                             icon: const Icon(Icons.g_mobiledata, size: 32),
                             label: const Text('Continuar com o Google'),
-                            onPressed: isLoading
-                                ? null 
-                                : () => context.read<AuthCubit>().loginWithGoogle(),
+                            onPressed:
+                                isLoading
+                                    ? null
+                                    : () =>
+                                        context
+                                            .read<AuthCubit>()
+                                            .loginWithGoogle(),
                           ),
                         ),
                       ],
@@ -105,8 +115,7 @@ class _RegisterPageState extends State<RegisterPage> {
 
                 const SizedBox(height: 16),
 
-                
-                  TextButton(
+                TextButton(
                   onPressed: () => context.go(AppRoutes.login),
                   child: const Text('Já tem uma conta? Entre aqui'),
                 ),
