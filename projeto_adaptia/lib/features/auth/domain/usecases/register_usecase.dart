@@ -8,8 +8,12 @@ class RegisterUsecase {
 
   const RegisterUsecase({required this.repository});
 
-  Future<UserEntity> call({required String email, required String password}) {
-    return repository.register(email: email, password: password);
+  Future<UserEntity> call({
+    required String email,
+    required String password,
+    required String nome, // 👈
+  }) {
+    return repository.register(email: email, password: password, nome: nome);
   }
 }
 

@@ -13,4 +13,9 @@ class Validators {
     if (value.length < 6) return 'A senha deve ter no mínimo 6 caracteres.';
     return null;
   }
+
+  static String? name(String? value) {
+    if (value == null || value.trim().isEmpty) return 'Informe seu nome';
+    return null;
+  }
 }

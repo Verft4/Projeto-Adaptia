@@ -15,16 +15,26 @@ class AuthCubit extends Cubit<AuthState> {
   final SendPasswordResetEmailUsecase sendPasswordResetEmailUsecase;
   final ResetPasswordUsecase resetPasswordUsecase;
 
-  AuthCubit({required this.registerUsecase, required this.loginUsecase, required this.loginWithGoogleUsecase, required this.sendPasswordResetEmailUsecase, required this.resetPasswordUsecase})
-    : super(AuthInitial());
+  AuthCubit({
+    required this.registerUsecase,
+    required this.loginUsecase,
+    required this.loginWithGoogleUsecase,
+    required this.sendPasswordResetEmailUsecase,
+    required this.resetPasswordUsecase,
+  }) : super(AuthInitial());
 
   Future<void> register({
     required String email,
     required String password,
+    required String nome, // 👈
   }) async {
     emit(AuthLoading());
     try {
-      final user = await registerUsecase(email: email, password: password);
+      final user = await registerUsecase(
+        email: email,
+        password: password,
+        nome: nome, // 👈
+      );
       emit(AuthSuccess(user));
     } catch (e) {
       emit(AuthError(e.toString()));
@@ -43,30 +53,31 @@ class AuthCubit extends Cubit<AuthState> {
 
   Future<void> loginWithGoogle() async {
     try {
-      final user = await loginWithGoogleUsecase(); // O email não é necessário para login com Google
+      final user =
+          await loginWithGoogleUsecase(); // O email não é necessário para login com Google
       emit(AuthSuccess(user));
     } catch (e) {
       emit(AuthError(e.toString()));
     }
   }
+
   Future<void> sendPasswordResetEmail({required String email}) async {
-  emit(AuthLoading());
-  try {
-    await sendPasswordResetEmailUsecase(email: email);
-    emit(PasswordResetEmailSent());
-  } catch (e) {
-    emit(AuthError(e.toString()));
+    emit(AuthLoading());
+    try {
+      await sendPasswordResetEmailUsecase(email: email);
+      emit(PasswordResetEmailSent());
+    } catch (e) {
+      emit(AuthError(e.toString()));
+    }
+  }
+
+  Future<void> resetPassword({required String newPassword}) async {
+    emit(AuthLoading());
+    try {
+      await resetPasswordUsecase(newPassword: newPassword);
+      emit(PasswordResetSuccess());
+    } catch (e) {
+      emit(AuthError(e.toString()));
+    }
   }
 }
-
-Future<void> resetPassword({required String newPassword}) async {
-  emit(AuthLoading());
-  try {
-    await resetPasswordUsecase(newPassword: newPassword);
-    emit(PasswordResetSuccess());
-  } catch (e) {
-    emit(AuthError(e.toString()));
-  }
-}
-}
-
