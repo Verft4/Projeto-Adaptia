@@ -5,6 +5,12 @@ import '../models/user_model.dart';
 
 abstract class AuthRemoteDatasource {
   Future<UserModel> getUsuarioAtual();
+  Future<UserModel> atualizarPerfil({
+    required String nome,
+    required String headline,
+    required String bio,
+    required String avatar,
+  });
 }
 
 class AuthRemoteDatasourceImpl implements AuthRemoteDatasource {
@@ -27,6 +33,31 @@ class AuthRemoteDatasourceImpl implements AuthRemoteDatasource {
     final doc = await _firestore.collection('usuarios').doc(user.uid).get();
     if (!doc.exists) {
       throw Exception('Nao foi possivel sincronizar o usuario no Firestore.');
+    }
+
+    return UserModel.fromJson(doc.data()!);
+  }
+
+  @override
+  Future<UserModel> atualizarPerfil({
+    required String nome,
+    required String headline,
+    required String bio,
+    required String avatar,
+  }) async {
+    final user = _auth.currentUser;
+    if (user == null) throw Exception('Nenhum usuário autenticado.');
+
+    await _authService.atualizarPerfilParticipante(
+      nome: nome,
+      headline: headline,
+      bio: bio,
+      avatar: avatar,
+    );
+
+    final doc = await _firestore.collection('usuarios').doc(user.uid).get();
+    if (!doc.exists) {
+      throw Exception('Nao foi possivel atualizar o perfil.');
     }
 
     return UserModel.fromJson(doc.data()!);

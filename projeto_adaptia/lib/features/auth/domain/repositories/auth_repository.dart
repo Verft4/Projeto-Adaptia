@@ -13,6 +13,12 @@ abstract class AuthRepository {
 
   Future<UserEntity> login({required String email, required String password});
   Future<UserEntity> loginWithGoogle();
+  Future<UserEntity> updateProfile({
+    required String nome,
+    required String headline,
+    required String bio,
+    required String avatar,
+  });
   Future<void> sendPasswordResetEmail({required String email});
   Future<void> resetPassword({required String newPassword});
 }

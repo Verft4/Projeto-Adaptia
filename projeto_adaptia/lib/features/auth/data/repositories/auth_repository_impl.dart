@@ -50,6 +50,21 @@ class AuthRepositoryImpl implements AuthRepository {
   }
 
   @override
+  Future<UserEntity> updateProfile({
+    required String nome,
+    required String headline,
+    required String bio,
+    required String avatar,
+  }) async {
+    return await datasource.atualizarPerfil(
+      nome: nome,
+      headline: headline,
+      bio: bio,
+      avatar: avatar,
+    );
+  }
+
+  @override
   Future<void> sendPasswordResetEmail({required String email}) =>
       authService.sendPasswordResetEmail(email: email);
 

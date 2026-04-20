@@ -100,6 +100,30 @@ class AuthService {
     await _auth.currentUser?.updatePassword(newPassword);
   }
 
+  Future<void> atualizarPerfilParticipante({
+    required String nome,
+    required String headline,
+    required String bio,
+    required String avatar,
+  }) async {
+    final user = _auth.currentUser;
+    if (user == null) {
+      throw Exception('Nenhum usuário autenticado.');
+    }
+
+    await user.updateDisplayName(nome);
+
+    await _firestore.collection('usuarios').doc(user.uid).set({
+      'uid': user.uid,
+      'nome': nome,
+      'email': user.email ?? '',
+      'headline': headline,
+      'bio': bio,
+      'avatar': avatar,
+      'atualizadoEm': FieldValue.serverTimestamp(),
+    }, SetOptions(merge: true));
+  }
+
   Future<void> garantirUsuarioAtualNoFirestore() async {
     final user = _auth.currentUser;
     if (user == null) {
@@ -121,7 +145,9 @@ class AuthService {
         'uid': user.uid,
         'nome': nomeOverride ?? user.displayName ?? '',
         'email': user.email ?? '',
-        'cargo': '',
+        'headline': '',
+        'bio': '',
+        'avatar': '',
         'criadoEm': FieldValue.serverTimestamp(),
       });
       return;
@@ -137,7 +163,12 @@ class AuthService {
       'uid': user.uid,
       'nome': nomeAtualizado,
       'email': user.email ?? '',
-      if (dadosAtuais.containsKey('cargo')) 'cargo': dadosAtuais['cargo'] ?? '',
+      if (dadosAtuais.containsKey('headline'))
+        'headline': dadosAtuais['headline'] ?? '',
+      if (dadosAtuais.containsKey('bio'))
+        'bio': dadosAtuais['bio'] ?? '',
+      if (dadosAtuais.containsKey('avatar'))
+        'avatar': dadosAtuais['avatar'] ?? '',
     }, SetOptions(merge: true));
   }
 }
