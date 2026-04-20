@@ -100,6 +100,36 @@ class AuthService {
     await _auth.currentUser?.updatePassword(newPassword);
   }
 
+  Future<void> deletarContaAtual() async {
+    final user = _auth.currentUser;
+    if (user == null) {
+      throw Exception('Nenhum usuário autenticado.');
+    }
+
+    final uid = user.uid;
+
+    try {
+      await _firestore.collection('usuarios').doc(uid).delete();
+      await user.delete();
+    } on FirebaseAuthException catch (e) {
+      if (e.code == 'requires-recent-login') {
+        throw Exception(
+          'Por segurança, faça login novamente antes de deletar sua conta.',
+        );
+      }
+      throw Exception('Erro ao deletar conta: ${e.message}');
+    } on FirebaseException catch (e) {
+      if (e.code == 'permission-denied') {
+        throw Exception(
+          'Sem permissao para deletar este perfil no Firestore. Verifique as regras da colecao usuarios.',
+        );
+      }
+      throw Exception('Erro ao deletar dados do perfil: ${e.message}');
+    } catch (e) {
+      throw Exception('Erro ao deletar conta: $e');
+    }
+  }
+
   Future<void> atualizarPerfilParticipante({
     required String nome,
     required String headline,

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
 import 'package:projeto_adaptia/core/theme/app_colors.dart';
+import 'package:projeto_adaptia/core/routes/app_routes.dart';
 import 'package:projeto_adaptia/features/auth/domain/entities/user_entity.dart';
 import 'package:projeto_adaptia/features/auth/presentation/cubit/auth_cubit.dart';
 import 'package:projeto_adaptia/features/auth/presentation/cubit/auth_state.dart';
@@ -18,8 +20,27 @@ class ProfilePage extends StatelessWidget {
         backgroundColor: AppColors.primary,
         foregroundColor: Colors.white,
         elevation: 0,
+        actions: [
+          IconButton(
+            onPressed: () => _showProfileSettings(context),
+            icon: const Icon(Icons.settings_outlined),
+            tooltip: 'Configuracoes do perfil',
+          ),
+        ],
       ),
-      body: BlocBuilder<AuthCubit, AuthState>(
+      body: BlocConsumer<AuthCubit, AuthState>(
+        listener: (context, state) {
+          if (state is AccountDeletedSuccess) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Conta deletada com sucesso.')),
+            );
+            context.go(AppRoutes.login);
+          } else if (state is AuthError) {
+            ScaffoldMessenger.of(
+              context,
+            ).showSnackBar(SnackBar(content: Text(state.message)));
+          }
+        },
         builder: (context, state) {
           if (state is AuthLoading) {
             return const Center(child: CircularProgressIndicator());
@@ -60,6 +81,107 @@ class ProfilePage extends StatelessWidget {
           return _ProfileContent(user: state.user);
         },
       ),
+    );
+  }
+
+  void _showProfileSettings(BuildContext context) {
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (sheetContext) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Configuracoes do perfil',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF1E293B),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                ListTile(
+                  enabled: false,
+                  leading: Icon(
+                    Icons.lock_outline,
+                    color: Colors.grey.shade500,
+                  ),
+                  title: Text(
+                    'Alterar senha',
+                    style: TextStyle(color: Colors.grey.shade500),
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  tileColor: const Color(0xFFF8FBFD),
+                ),
+                const SizedBox(height: 12),
+                ListTile(
+                  onTap: () async {
+                    Navigator.of(sheetContext).pop();
+                    final shouldDelete = await _showDeleteConfirmation(context);
+                    if (shouldDelete == true && context.mounted) {
+                      context.read<AuthCubit>().deleteAccount();
+                    }
+                  },
+                  leading: const Icon(
+                    Icons.delete_outline,
+                    color: Colors.redAccent,
+                  ),
+                  title: const Text(
+                    'Deletar conta',
+                    style: TextStyle(
+                      color: Colors.redAccent,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  subtitle: const Text('Essa acao nao pode ser desfeita'),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  tileColor: const Color(0xFFFFF5F5),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Future<bool?> _showDeleteConfirmation(BuildContext context) {
+    return showDialog<bool>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: const Text('Deletar conta'),
+          content: const Text(
+            'Tem certeza que deseja deletar sua conta? Seus dados de perfil serao removidos permanentemente.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(false),
+              child: const Text('Cancelar'),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.of(dialogContext).pop(true),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.redAccent,
+                foregroundColor: Colors.white,
+              ),
+              child: const Text('Deletar'),
+            ),
+          ],
+        );
+      },
     );
   }
 }

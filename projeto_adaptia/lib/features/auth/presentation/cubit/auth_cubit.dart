@@ -4,6 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:projeto_adaptia/features/auth/domain/usecases/reset_password_usecase.dart';
 import 'package:projeto_adaptia/features/auth/domain/usecases/send_password_reset_email_usecase.dart';
 import 'package:projeto_adaptia/features/auth/domain/usecases/get_current_user_usecase.dart';
+import 'package:projeto_adaptia/features/auth/domain/usecases/delete_account_usecase.dart';
 import 'package:projeto_adaptia/features/auth/domain/usecases/update_profile_usecase.dart';
 import '../../domain/usecases/register_usecase.dart';
 import '../../domain/usecases/login_usecase.dart';
@@ -18,6 +19,7 @@ class AuthCubit extends Cubit<AuthState> {
   final SendPasswordResetEmailUsecase sendPasswordResetEmailUsecase;
   final ResetPasswordUsecase resetPasswordUsecase;
   final UpdateProfileUsecase updateProfileUsecase;
+  final DeleteAccountUsecase deleteAccountUsecase;
 
   AuthCubit({
     required this.registerUsecase,
@@ -27,6 +29,7 @@ class AuthCubit extends Cubit<AuthState> {
     required this.sendPasswordResetEmailUsecase,
     required this.resetPasswordUsecase,
     required this.updateProfileUsecase,
+    required this.deleteAccountUsecase,
   }) : super(AuthInitial());
 
   Future<void> loadCurrentUser() async {
@@ -112,6 +115,16 @@ class AuthCubit extends Cubit<AuthState> {
         avatar: avatar,
       );
       emit(AuthSuccess(user));
+    } catch (e) {
+      emit(AuthError(e.toString()));
+    }
+  }
+
+  Future<void> deleteAccount() async {
+    emit(AuthLoading());
+    try {
+      await deleteAccountUsecase();
+      emit(AccountDeletedSuccess());
     } catch (e) {
       emit(AuthError(e.toString()));
     }

@@ -11,6 +11,7 @@ abstract class AuthRemoteDatasource {
     required String bio,
     required String avatar,
   });
+  Future<void> deletarConta();
 }
 
 class AuthRemoteDatasourceImpl implements AuthRemoteDatasource {
@@ -61,5 +62,13 @@ class AuthRemoteDatasourceImpl implements AuthRemoteDatasource {
     }
 
     return UserModel.fromJson(doc.data()!);
+  }
+
+  @override
+  Future<void> deletarConta() async {
+    final user = _auth.currentUser;
+    if (user == null) throw Exception('Nenhum usuário autenticado.');
+
+    await _authService.deletarContaAtual();
   }
 }
