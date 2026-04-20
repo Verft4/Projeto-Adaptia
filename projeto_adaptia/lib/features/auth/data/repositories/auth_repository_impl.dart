@@ -13,6 +13,11 @@ class AuthRepositoryImpl implements AuthRepository {
   });
 
   @override
+  Future<UserEntity> getCurrentUser() async {
+    return await datasource.getUsuarioAtual();
+  }
+
+  @override
   Future<UserEntity> login({
     required String email,
     required String password,

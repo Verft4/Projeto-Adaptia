@@ -3,6 +3,7 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:projeto_adaptia/features/auth/domain/usecases/reset_password_usecase.dart';
 import 'package:projeto_adaptia/features/auth/domain/usecases/send_password_reset_email_usecase.dart';
+import 'package:projeto_adaptia/features/auth/domain/usecases/get_current_user_usecase.dart';
 import '../../domain/usecases/register_usecase.dart';
 import '../../domain/usecases/login_usecase.dart';
 import 'auth_state.dart';
@@ -12,6 +13,7 @@ class AuthCubit extends Cubit<AuthState> {
   final RegisterUsecase registerUsecase;
   final LoginUsecase loginUsecase;
   final LoginGoogleUseCase loginWithGoogleUsecase;
+  final GetCurrentUserUsecase getCurrentUserUsecase;
   final SendPasswordResetEmailUsecase sendPasswordResetEmailUsecase;
   final ResetPasswordUsecase resetPasswordUsecase;
 
@@ -19,9 +21,20 @@ class AuthCubit extends Cubit<AuthState> {
     required this.registerUsecase,
     required this.loginUsecase,
     required this.loginWithGoogleUsecase,
+    required this.getCurrentUserUsecase,
     required this.sendPasswordResetEmailUsecase,
     required this.resetPasswordUsecase,
   }) : super(AuthInitial());
+
+  Future<void> loadCurrentUser() async {
+    emit(AuthLoading());
+    try {
+      final user = await getCurrentUserUsecase();
+      emit(AuthSuccess(user));
+    } catch (e) {
+      emit(AuthError(e.toString()));
+    }
+  }
 
   Future<void> register({
     required String email,

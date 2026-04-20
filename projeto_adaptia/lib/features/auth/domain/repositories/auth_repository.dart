@@ -3,6 +3,8 @@
 import '../entities/user_entity.dart';
 
 abstract class AuthRepository {
+  Future<UserEntity> getCurrentUser();
+
   Future<UserEntity> register({
     required String email,
     required String password,

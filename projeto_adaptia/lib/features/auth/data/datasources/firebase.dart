@@ -4,6 +4,7 @@ import 'package:google_sign_in/google_sign_in.dart';
 
 class AuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   final GoogleSignIn _googleSignIn = GoogleSignIn.instance;
 
@@ -13,6 +14,7 @@ class AuthService {
   }) async {
     try {
       await _auth.signInWithEmailAndPassword(email: email, password: password);
+      await garantirUsuarioAtualNoFirestore();
       return null; // Sucesso
     } on FirebaseAuthException catch (e) {
       if (e.code == 'invalid-credential' ||
@@ -80,6 +82,7 @@ class AuthService {
       );
 
       await _auth.signInWithCredential(credential);
+      await garantirUsuarioAtualNoFirestore();
 
       return null;
     } on FirebaseAuthException catch (e) {
@@ -97,13 +100,20 @@ class AuthService {
     await _auth.currentUser?.updatePassword(newPassword);
   }
 
+  Future<void> garantirUsuarioAtualNoFirestore() async {
+    final user = _auth.currentUser;
+    if (user == null) {
+      throw Exception('Nenhum usuário autenticado.');
+    }
+
+    await _criarUsuarioNoFirestore(user: user);
+  }
+
   Future<void> _criarUsuarioNoFirestore({
     required User user,
     String? nomeOverride,
   }) async {
-    final docRef = FirebaseFirestore.instance
-        .collection('usuarios')
-        .doc(user.uid);
+    final docRef = _firestore.collection('usuarios').doc(user.uid);
     final docSnap = await docRef.get();
 
     if (!docSnap.exists) {
@@ -114,6 +124,20 @@ class AuthService {
         'cargo': '',
         'criadoEm': FieldValue.serverTimestamp(),
       });
+      return;
     }
+
+    final dadosAtuais = docSnap.data() ?? <String, dynamic>{};
+    final nomeAtualizado =
+        (dadosAtuais['nome'] as String?)?.trim().isNotEmpty == true
+        ? dadosAtuais['nome'] as String
+        : (nomeOverride ?? user.displayName ?? '');
+
+    await docRef.set({
+      'uid': user.uid,
+      'nome': nomeAtualizado,
+      'email': user.email ?? '',
+      if (dadosAtuais.containsKey('cargo')) 'cargo': dadosAtuais['cargo'] ?? '',
+    }, SetOptions(merge: true));
   }
 }
