@@ -21,3 +21,4 @@ class AuthError extends AuthState {
 
 class PasswordResetEmailSent extends AuthState {}
 class PasswordResetSuccess extends AuthState {}
+class AccountDeletedSuccess extends AuthState {}

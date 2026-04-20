@@ -4,6 +4,7 @@ import 'package:google_sign_in/google_sign_in.dart';
 
 class AuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   final GoogleSignIn _googleSignIn = GoogleSignIn.instance;
 
@@ -13,6 +14,7 @@ class AuthService {
   }) async {
     try {
       await _auth.signInWithEmailAndPassword(email: email, password: password);
+      await garantirUsuarioAtualNoFirestore();
       return null; // Sucesso
     } on FirebaseAuthException catch (e) {
       if (e.code == 'invalid-credential' ||
@@ -80,6 +82,7 @@ class AuthService {
       );
 
       await _auth.signInWithCredential(credential);
+      await garantirUsuarioAtualNoFirestore();
 
       return null;
     } on FirebaseAuthException catch (e) {
@@ -97,13 +100,74 @@ class AuthService {
     await _auth.currentUser?.updatePassword(newPassword);
   }
 
+  Future<void> deletarContaAtual() async {
+    final user = _auth.currentUser;
+    if (user == null) {
+      throw Exception('Nenhum usuário autenticado.');
+    }
+
+    final uid = user.uid;
+
+    try {
+      await _firestore.collection('usuarios').doc(uid).delete();
+      await user.delete();
+    } on FirebaseAuthException catch (e) {
+      if (e.code == 'requires-recent-login') {
+        throw Exception(
+          'Por segurança, faça login novamente antes de deletar sua conta.',
+        );
+      }
+      throw Exception('Erro ao deletar conta: ${e.message}');
+    } on FirebaseException catch (e) {
+      if (e.code == 'permission-denied') {
+        throw Exception(
+          'Sem permissao para deletar este perfil no Firestore. Verifique as regras da colecao usuarios.',
+        );
+      }
+      throw Exception('Erro ao deletar dados do perfil: ${e.message}');
+    } catch (e) {
+      throw Exception('Erro ao deletar conta: $e');
+    }
+  }
+
+  Future<void> atualizarPerfilParticipante({
+    required String nome,
+    required String headline,
+    required String bio,
+    required String avatar,
+  }) async {
+    final user = _auth.currentUser;
+    if (user == null) {
+      throw Exception('Nenhum usuário autenticado.');
+    }
+
+    await user.updateDisplayName(nome);
+
+    await _firestore.collection('usuarios').doc(user.uid).set({
+      'uid': user.uid,
+      'nome': nome,
+      'email': user.email ?? '',
+      'headline': headline,
+      'bio': bio,
+      'avatar': avatar,
+      'atualizadoEm': FieldValue.serverTimestamp(),
+    }, SetOptions(merge: true));
+  }
+
+  Future<void> garantirUsuarioAtualNoFirestore() async {
+    final user = _auth.currentUser;
+    if (user == null) {
+      throw Exception('Nenhum usuário autenticado.');
+    }
+
+    await _criarUsuarioNoFirestore(user: user);
+  }
+
   Future<void> _criarUsuarioNoFirestore({
     required User user,
     String? nomeOverride,
   }) async {
-    final docRef = FirebaseFirestore.instance
-        .collection('usuarios')
-        .doc(user.uid);
+    final docRef = _firestore.collection('usuarios').doc(user.uid);
     final docSnap = await docRef.get();
 
     if (!docSnap.exists) {
@@ -111,9 +175,30 @@ class AuthService {
         'uid': user.uid,
         'nome': nomeOverride ?? user.displayName ?? '',
         'email': user.email ?? '',
-        'cargo': '',
+        'headline': '',
+        'bio': '',
+        'avatar': '',
         'criadoEm': FieldValue.serverTimestamp(),
       });
+      return;
     }
+
+    final dadosAtuais = docSnap.data() ?? <String, dynamic>{};
+    final nomeAtualizado =
+        (dadosAtuais['nome'] as String?)?.trim().isNotEmpty == true
+        ? dadosAtuais['nome'] as String
+        : (nomeOverride ?? user.displayName ?? '');
+
+    await docRef.set({
+      'uid': user.uid,
+      'nome': nomeAtualizado,
+      'email': user.email ?? '',
+      if (dadosAtuais.containsKey('headline'))
+        'headline': dadosAtuais['headline'] ?? '',
+      if (dadosAtuais.containsKey('bio'))
+        'bio': dadosAtuais['bio'] ?? '',
+      if (dadosAtuais.containsKey('avatar'))
+        'avatar': dadosAtuais['avatar'] ?? '',
+    }, SetOptions(merge: true));
   }
 }
