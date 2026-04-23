@@ -44,38 +44,39 @@ class _ClassesPageState extends State<ClassesPage> {
   final List<ClassModel> classes = [];
   final _firestore = FirebaseFirestore.instance;
   final _auth = FirebaseAuth.instance;
+
   final TextEditingController searchController = TextEditingController();
   String searchQuery = '';
 
   @override
-void initState() {
-  super.initState();
-  _carregarTurmas();
-}
+  void initState() {
+    super.initState();
+    _carregarTurmas();
+  }
 
-Future<void> _carregarTurmas() async {
-  final uid = _auth.currentUser?.uid;
-  if (uid == null) return;
+  Future<void> _carregarTurmas() async {
+    final uid = _auth.currentUser?.uid;
+    if (uid == null) return;
 
-  final snap = await _firestore
-      .collection('turmas')
-      .where('professorID', isEqualTo: uid)
-      .get();
+    final snap = await _firestore
+        .collection('turmas')
+        .where('professorID', isEqualTo: uid)
+        .get();
 
-  setState(() {
-    classes.clear();
-    for (final doc in snap.docs) {
-      final data = doc.data();
-      classes.add(ClassModel(
-        id: doc.id,
-        name: data['nome'] ?? '',
-        institution: data['instituicao'] ?? '',
-        grade: data['qtdEstudantes']?.toString() ?? '',
-        students: [],
-      ));
-    }
-  });
-}
+    setState(() {
+      classes.clear();
+      for (final doc in snap.docs) {
+        final data = doc.data();
+        classes.add(ClassModel(
+          id: doc.id,
+          name: data['nome'] ?? '',
+          institution: data['instituicao'] ?? '',
+          grade: data['qtdEstudantes']?.toString() ?? '',
+          students: [],
+        ));
+      }
+    });
+  }
 
   void _applySearch() {
     setState(() {
@@ -87,6 +88,7 @@ Future<void> _carregarTurmas() async {
     final name = TextEditingController();
     final inst = TextEditingController();
     final grade = TextEditingController();
+
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -132,6 +134,7 @@ Future<void> _carregarTurmas() async {
                   students: [],
                 ));
               });
+
               Navigator.pop(ctx);
             },
             child: const Text('Criar'),
@@ -140,6 +143,95 @@ Future<void> _carregarTurmas() async {
       ),
     );
   }
+
+  void _editClass(ClassModel c, int index) {
+    final name = TextEditingController(text: c.name);
+    final inst = TextEditingController(text: c.institution);
+    final grade = TextEditingController(text: c.grade);
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Editar turma'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(controller: name, decoration: const InputDecoration(labelText: 'Nome')),
+            TextField(controller: inst, decoration: const InputDecoration(labelText: 'Instituição')),
+            TextField(controller: grade, decoration: const InputDecoration(labelText: 'Ano')),
+          ],
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancelar')),
+          ElevatedButton(
+            onPressed: () async {
+              await _firestore.collection('turmas').doc(c.id).update({
+                'nome': name.text,
+                'instituicao': inst.text,
+                'qtdEstudantes': grade.text,
+              });
+
+              setState(() {
+                c.name = name.text;
+                c.institution = inst.text;
+                c.grade = grade.text;
+              });
+
+              Navigator.pop(ctx);
+            },
+            child: const Text('Salvar'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _deleteClass(ClassModel c) async {
+  final confirm = await showDialog<bool>(
+    context: context,
+    builder: (ctx) => AlertDialog(
+      title: const Text('Confirmar exclusão'),
+      content: const Text('Deseja excluir esta turma?'),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(ctx, false),
+          child: const Text('Cancelar'),
+        ),
+        ElevatedButton(
+          onPressed: () => Navigator.pop(ctx, true),
+          child: const Text('Excluir'),
+        ),
+      ],
+    ),
+  );
+
+  if (confirm != true) return;
+
+  try {
+    final turmaRef = _firestore.collection('turmas').doc(c.id);
+
+    final alunosSnap = await turmaRef.collection('personas').get();
+
+    for (final doc in alunosSnap.docs) {
+      await doc.reference.delete();
+    }
+
+    await turmaRef.delete();
+
+    if (!mounted) return;
+
+    setState(() {
+      classes.removeWhere((item) => item.id == c.id);
+    });
+
+  } catch (e) {
+    if (!mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Erro ao excluir turma: $e')),
+    );
+  }
+}
 
   Widget _buildCard(ClassModel c, int index) {
     return GestureDetector(
@@ -168,7 +260,29 @@ Future<void> _carregarTurmas() async {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(c.name, style: const TextStyle(fontWeight: FontWeight.bold)),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Expanded(
+                  child: Text(
+                    c.name,
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                ),
+                Row(
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.edit, size: 20),
+                      onPressed: () => _editClass(c, index),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.delete, size: 20, color: Colors.red),
+                      onPressed: () => _deleteClass(c),
+                    ),
+                  ],
+                ),
+              ],
+            ),
             const SizedBox(height: 6),
             Text(c.institution),
             Text('${c.grade}º do fundamental'),
@@ -470,6 +584,7 @@ class _ClassDetailPageState extends State<ClassDetailPage> {
                   'nome': name.text,
                   'diagnostico': selectedList.join(', '),
                   'resumoPedagogico': observations.text,
+                  'idade': int.tryParse(age.text) ?? 0,
                 });
                 widget.onUpdate();
                 setState(() {});
