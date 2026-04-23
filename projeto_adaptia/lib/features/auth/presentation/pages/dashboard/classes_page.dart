@@ -1,12 +1,16 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 class StudentModel {
+  String id; // 👈 ID do documento no Firestore
   String personaName;
   String diagnosis;
   String observations;
   int age;
 
   StudentModel({
+    this.id = '',   // 👈
     required this.personaName,
     required this.diagnosis,
     required this.observations,
@@ -15,12 +19,14 @@ class StudentModel {
 }
 
 class ClassModel {
+  String id; // 👈
   String name;
   String institution;
   String grade;
   List<StudentModel> students;
 
   ClassModel({
+    this.id = '', // 👈
     required this.name,
     required this.institution,
     required this.grade,
@@ -34,11 +40,42 @@ class ClassesPage extends StatefulWidget {
   @override
   State<ClassesPage> createState() => _ClassesPageState();
 }
-
 class _ClassesPageState extends State<ClassesPage> {
   final List<ClassModel> classes = [];
+  final _firestore = FirebaseFirestore.instance;
+  final _auth = FirebaseAuth.instance;
   final TextEditingController searchController = TextEditingController();
   String searchQuery = '';
+
+  @override
+void initState() {
+  super.initState();
+  _carregarTurmas();
+}
+
+Future<void> _carregarTurmas() async {
+  final uid = _auth.currentUser?.uid;
+  if (uid == null) return;
+
+  final snap = await _firestore
+      .collection('turmas')
+      .where('professorID', isEqualTo: uid)
+      .get();
+
+  setState(() {
+    classes.clear();
+    for (final doc in snap.docs) {
+      final data = doc.data();
+      classes.add(ClassModel(
+        id: doc.id,
+        name: data['nome'] ?? '',
+        institution: data['instituicao'] ?? '',
+        grade: data['qtdEstudantes']?.toString() ?? '',
+        students: [],
+      ));
+    }
+  });
+}
 
   void _applySearch() {
     setState(() {
@@ -50,7 +87,6 @@ class _ClassesPageState extends State<ClassesPage> {
     final name = TextEditingController();
     final inst = TextEditingController();
     final grade = TextEditingController();
-
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -66,7 +102,7 @@ class _ClassesPageState extends State<ClassesPage> {
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancelar')),
           ElevatedButton(
-            onPressed: () {
+            onPressed: () async {
               if (name.text.trim().isEmpty ||
                   inst.text.trim().isEmpty ||
                   grade.text.trim().isEmpty) {
@@ -76,8 +112,20 @@ class _ClassesPageState extends State<ClassesPage> {
                 return;
               }
 
+              final uid = _auth.currentUser?.uid;
+              if (uid == null) return;
+
+              final docRef = await _firestore.collection('turmas').add({
+                'nome': name.text,
+                'instituicao': inst.text,
+                'qtdEstudantes': grade.text,
+                'professorID': uid,
+                'criadoEm': FieldValue.serverTimestamp(),
+              });
+
               setState(() {
                 classes.add(ClassModel(
+                  id: docRef.id,
                   name: name.text,
                   institution: inst.text,
                   grade: grade.text,
@@ -271,7 +319,7 @@ class _ClassDetailPageState extends State<ClassDetailPage> {
           actions: [
             TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancelar')),
             ElevatedButton(
-              onPressed: () {
+              onPressed: () async {
                 if (name.text.trim().isEmpty ||
                     age.text.trim().isEmpty ||
                     !selected.containsValue(true)) {
@@ -297,8 +345,21 @@ class _ClassDetailPageState extends State<ClassDetailPage> {
                   selectedList.add(otherDiagnosis.text);
                 }
 
+                final docRef = await FirebaseFirestore.instance
+                    .collection('turmas')
+                    .doc(widget.classModel.id)
+                    .collection('personas')
+                    .add({
+                  'nome': name.text,
+                  'diagnostico': selectedList.join(', '),
+                  'resumoPedagogico': observations.text,
+                  'turmaID': widget.classModel.id,
+                  'criadoEm': FieldValue.serverTimestamp(),
+                });
+
                 widget.classModel.students.add(
                   StudentModel(
+                    id: docRef.id,
                     personaName: name.text,
                     diagnosis: selectedList.join(', '),
                     observations: observations.text,
@@ -370,7 +431,7 @@ class _ClassDetailPageState extends State<ClassDetailPage> {
           actions: [
             TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancelar')),
             ElevatedButton(
-              onPressed: () {
+              onPressed: () async {
                 if (name.text.trim().isEmpty ||
                     age.text.trim().isEmpty ||
                     !selected.containsValue(true)) {
@@ -400,7 +461,16 @@ class _ClassDetailPageState extends State<ClassDetailPage> {
                 student.diagnosis = selectedList.join(', ');
                 student.observations = observations.text;
                 student.age = int.tryParse(age.text) ?? 0;
-
+                await FirebaseFirestore.instance
+                    .collection('turmas')
+                    .doc(widget.classModel.id)
+                    .collection('personas')
+                    .doc(student.id)
+                    .update({
+                  'nome': name.text,
+                  'diagnostico': selectedList.join(', '),
+                  'resumoPedagogico': observations.text,
+                });
                 widget.onUpdate();
                 setState(() {});
                 Navigator.pop(ctx);
