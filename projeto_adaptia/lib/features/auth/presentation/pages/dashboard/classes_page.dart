@@ -3,14 +3,14 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 class StudentModel {
-  String id; // 👈 ID do documento no Firestore
+  String id;
   String personaName;
   String diagnosis;
   String observations;
   int age;
 
   StudentModel({
-    this.id = '',   // 👈
+    this.id = '',
     required this.personaName,
     required this.diagnosis,
     required this.observations,
@@ -59,9 +59,11 @@ class _ClassesPageState extends State<ClassesPage> {
     if (uid == null) return;
 
     final snap = await _firestore
+        .collection('usuarios')
+        .doc(uid)
         .collection('turmas')
-        .where('professorID', isEqualTo: uid)
         .get();
+
 
     setState(() {
       classes.clear();
@@ -117,7 +119,11 @@ class _ClassesPageState extends State<ClassesPage> {
               final uid = _auth.currentUser?.uid;
               if (uid == null) return;
 
-              final docRef = await _firestore.collection('turmas').add({
+              final docRef = await _firestore
+              .collection('usuarios')
+              .doc(uid)
+              .collection('turmas')
+              .add({
                 'nome': name.text,
                 'instituicao': inst.text,
                 'qtdEstudantes': grade.text,
@@ -165,7 +171,9 @@ class _ClassesPageState extends State<ClassesPage> {
           TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancelar')),
           ElevatedButton(
             onPressed: () async {
-              await _firestore.collection('turmas').doc(c.id).update({
+              final uid = _auth.currentUser?.uid;
+              if (uid == null) return;
+              await _firestore.collection('usuarios').doc(uid).collection('turmas').doc(c.id).update({
                 'nome': name.text,
                 'instituicao': inst.text,
                 'qtdEstudantes': grade.text,
@@ -208,7 +216,9 @@ class _ClassesPageState extends State<ClassesPage> {
   if (confirm != true) return;
 
   try {
-    final turmaRef = _firestore.collection('turmas').doc(c.id);
+    final uid = _auth.currentUser?.uid;
+    if (uid == null) return;
+    final turmaRef = _firestore.collection('usuarios').doc(uid).collection('turmas').doc(c.id);
 
     final alunosSnap = await turmaRef.collection('personas').get();
 
@@ -387,6 +397,39 @@ class ClassDetailPage extends StatefulWidget {
 class _ClassDetailPageState extends State<ClassDetailPage> {
   final TextEditingController searchController = TextEditingController();
   String searchQuery = '';
+  @override
+void initState() {
+  super.initState();
+  _carregarPersonas();
+}
+
+Future<void> _carregarPersonas() async {
+  final uid = FirebaseAuth.instance.currentUser?.uid;
+  if (uid == null) return;
+
+  final snap = await FirebaseFirestore.instance
+      .collection('usuarios')
+      .doc(uid)
+      .collection('turmas')
+      .doc(widget.classModel.id)
+      .collection('personas')
+      .get();
+
+  setState(() {
+    widget.classModel.students
+      ..clear()
+      ..addAll(snap.docs.map((p) {
+        final pd = p.data();
+        return StudentModel(
+          id: p.id,
+          personaName: pd['nome'] ?? '',
+          diagnosis: pd['diagnostico'] ?? '',
+          observations: pd['resumoPedagogico'] ?? '',
+          age: pd['idade'] ?? 0,
+        );
+      }));
+  });
+}
 
   void _applySearch() {
     setState(() {
@@ -458,13 +501,17 @@ class _ClassDetailPageState extends State<ClassDetailPage> {
                 if (selected['Outro'] == true) {
                   selectedList.add(otherDiagnosis.text);
                 }
-
+                final uid = FirebaseAuth.instance.currentUser?.uid;
+                if (uid == null) return;
                 final docRef = await FirebaseFirestore.instance
+                    .collection('usuarios')
+                    .doc(uid)
                     .collection('turmas')
                     .doc(widget.classModel.id)
                     .collection('personas')
                     .add({
                   'nome': name.text,
+                  'idade': int.tryParse(age.text) ?? 0,
                   'diagnostico': selectedList.join(', '),
                   'resumoPedagogico': observations.text,
                   'turmaID': widget.classModel.id,
@@ -575,7 +622,12 @@ class _ClassDetailPageState extends State<ClassDetailPage> {
                 student.diagnosis = selectedList.join(', ');
                 student.observations = observations.text;
                 student.age = int.tryParse(age.text) ?? 0;
+                final uid = FirebaseAuth.instance.currentUser?.uid;
+                if (uid == null) return;
+
                 await FirebaseFirestore.instance
+                    .collection('usuarios')
+                    .doc(uid)
                     .collection('turmas')
                     .doc(widget.classModel.id)
                     .collection('personas')
