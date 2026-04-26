@@ -9,6 +9,7 @@ import '../../features/auth/data/datasources/firebase.dart';
 import '../../features/auth/domain/usecases/get_current_user_usecase.dart';
 import '../../features/auth/domain/usecases/login_google_usecase.dart';
 import 'package:projeto_adaptia/features/auth/domain/usecases/delete_account_usecase.dart';
+import 'package:projeto_adaptia/features/auth/domain/usecases/link_google_account_usecase.dart';
 import 'package:projeto_adaptia/features/auth/domain/usecases/logout_usecase.dart';
 import 'package:projeto_adaptia/features/auth/domain/usecases/reset_password_usecase.dart';
 import 'package:projeto_adaptia/features/auth/domain/usecases/send_password_reset_email_usecase.dart';
@@ -40,6 +41,7 @@ void setupDependencies() {
   sl.registerLazySingleton(() => ResetPasswordUsecase(repository: sl()));
   sl.registerLazySingleton(() => UpdateProfileUsecase(repository: sl()));
   sl.registerLazySingleton(() => DeleteAccountUsecase(repository: sl()));
+  sl.registerLazySingleton(() => LinkGoogleAccountUsecase(repository: sl()));
   sl.registerLazySingleton(() => LogoutUsecase(repository: sl()));
 
   // ─── Cubits ────────────────────────────────────────────
@@ -53,6 +55,7 @@ void setupDependencies() {
       resetPasswordUsecase: sl(),
       updateProfileUsecase: sl(),
       deleteAccountUsecase: sl(),
+      linkGoogleAccountUsecase: sl(),
       logoutUsecase: sl(),
     ),
   );

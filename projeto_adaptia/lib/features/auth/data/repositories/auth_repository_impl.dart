@@ -50,6 +50,13 @@ class AuthRepositoryImpl implements AuthRepository {
   }
 
   @override
+  Future<UserEntity> linkGoogleAccount() async {
+    final error = await authService.vincularContaGoogle();
+    if (error != null) throw Exception(error);
+    return await datasource.getUsuarioAtual();
+  }
+
+  @override
   Future<UserEntity> updateProfile({
     required String nome,
     required String headline,

@@ -5,6 +5,7 @@ import 'package:projeto_adaptia/features/auth/domain/usecases/reset_password_use
 import 'package:projeto_adaptia/features/auth/domain/usecases/send_password_reset_email_usecase.dart';
 import 'package:projeto_adaptia/features/auth/domain/usecases/get_current_user_usecase.dart';
 import 'package:projeto_adaptia/features/auth/domain/usecases/delete_account_usecase.dart';
+import 'package:projeto_adaptia/features/auth/domain/usecases/link_google_account_usecase.dart';
 import 'package:projeto_adaptia/features/auth/domain/usecases/logout_usecase.dart';
 import 'package:projeto_adaptia/features/auth/domain/usecases/update_profile_usecase.dart';
 import '../../domain/usecases/register_usecase.dart';
@@ -21,6 +22,7 @@ class AuthCubit extends Cubit<AuthState> {
   final ResetPasswordUsecase resetPasswordUsecase;
   final UpdateProfileUsecase updateProfileUsecase;
   final DeleteAccountUsecase deleteAccountUsecase;
+  final LinkGoogleAccountUsecase linkGoogleAccountUsecase;
   final LogoutUsecase logoutUsecase;
 
   AuthCubit({
@@ -32,6 +34,7 @@ class AuthCubit extends Cubit<AuthState> {
     required this.resetPasswordUsecase,
     required this.updateProfileUsecase,
     required this.deleteAccountUsecase,
+    required this.linkGoogleAccountUsecase,
     required this.logoutUsecase,
   }) : super(AuthInitial());
 
@@ -138,6 +141,16 @@ class AuthCubit extends Cubit<AuthState> {
     try {
       await logoutUsecase();
       emit(LoggedOutSuccess());
+    } catch (e) {
+      emit(AuthError(e.toString()));
+    }
+  }
+
+  Future<void> linkGoogleAccount() async {
+    emit(AuthLoading());
+    try {
+      final user = await linkGoogleAccountUsecase();
+      emit(AuthSuccess(user));
     } catch (e) {
       emit(AuthError(e.toString()));
     }

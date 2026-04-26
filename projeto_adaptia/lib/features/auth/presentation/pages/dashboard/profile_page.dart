@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:go_router/go_router.dart';
 import 'package:projeto_adaptia/core/theme/app_colors.dart';
 import 'package:projeto_adaptia/core/routes/app_routes.dart';
@@ -10,6 +11,15 @@ import 'package:projeto_adaptia/features/auth/presentation/pages/dashboard/edit_
 
 class ProfilePage extends StatelessWidget {
   const ProfilePage({super.key});
+
+  bool _isGoogleLinked() {
+    final currentUser = FirebaseAuth.instance.currentUser;
+    if (currentUser == null) return false;
+
+    return currentUser.providerData.any(
+      (provider) => provider.providerId == GoogleAuthProvider.PROVIDER_ID,
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -90,6 +100,8 @@ class ProfilePage extends StatelessWidget {
   }
 
   void _showProfileSettings(BuildContext context) {
+    final isGoogleLinked = _isGoogleLinked();
+
     showModalBottomSheet<void>(
       context: context,
       backgroundColor: Colors.white,
@@ -113,6 +125,43 @@ class ProfilePage extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 16),
+                ListTile(
+                  onTap: isGoogleLinked
+                      ? null
+                      : () {
+                          Navigator.of(sheetContext).pop();
+                          context.read<AuthCubit>().linkGoogleAccount();
+                        },
+                  leading: Icon(
+                    isGoogleLinked ? Icons.check_circle_outline : Icons.link,
+                    color: isGoogleLinked
+                        ? const Color(0xFF2E7D32)
+                        : const Color(0xFFF57C00),
+                  ),
+                  title: Text(
+                    isGoogleLinked
+                        ? 'Conta Google vinculada'
+                        : 'Vincular conta Google',
+                    style: TextStyle(
+                      color: isGoogleLinked
+                          ? const Color(0xFF2E7D32)
+                          : const Color(0xFFF57C00),
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  subtitle: Text(
+                    isGoogleLinked
+                        ? 'Seu login com Google ja esta ativo'
+                        : 'Permita entrar com Google nesta conta',
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  tileColor: isGoogleLinked
+                      ? const Color(0xFFEAF7EC)
+                      : const Color(0xFFFFF4E5),
+                ),
+                const SizedBox(height: 12),
                 ListTile(
                   enabled: false,
                   leading: Icon(
@@ -170,7 +219,7 @@ class ProfilePage extends StatelessWidget {
                       fontWeight: FontWeight.w600,
                     ),
                   ),
-                  subtitle: const Text('Essa acao nao pode ser desfeita'),
+                  subtitle: const Text('Essa ação não pode ser desfeita'),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(16),
                   ),

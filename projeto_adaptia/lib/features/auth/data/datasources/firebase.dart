@@ -113,6 +113,66 @@ class AuthService {
     }
   }
 
+  Future<String?> vincularContaGoogle() async {
+    final currentUser = _auth.currentUser;
+    if (currentUser == null) {
+      return 'Nenhum usuário autenticado.';
+    }
+
+    if (currentUser.email == null || currentUser.email!.trim().isEmpty) {
+      return 'Sua conta atual nao possui e-mail valido para vincular ao Google.';
+    }
+
+    GoogleSignInAccount? googleUser;
+    try {
+      await _googleSignIn.initialize();
+      googleUser = await _googleSignIn.authenticate();
+
+      if (googleUser.email.toLowerCase() != currentUser.email!.toLowerCase()) {
+        await _googleSignIn.signOut();
+        return 'Escolha a mesma conta Google cadastrada com o e-mail ${currentUser.email}.';
+      }
+
+      final scopes = ['email', 'profile'];
+      final clientAuth =
+          await googleUser.authorizationClient.authorizationForScopes(scopes) ??
+          await googleUser.authorizationClient.authorizeScopes(scopes);
+
+      final credential = GoogleAuthProvider.credential(
+        accessToken: clientAuth.accessToken,
+        idToken: googleUser.authentication.idToken,
+      );
+
+      final alreadyLinked = currentUser.providerData.any(
+        (provider) => provider.providerId == GoogleAuthProvider.PROVIDER_ID,
+      );
+
+      if (!alreadyLinked) {
+        await currentUser.linkWithCredential(credential);
+      }
+
+      await garantirUsuarioAtualNoFirestore();
+      return null;
+    } on FirebaseAuthException catch (e) {
+      if (e.code == 'provider-already-linked') {
+        await garantirUsuarioAtualNoFirestore();
+        return null;
+      }
+
+      if (e.code == 'credential-already-in-use') {
+        return 'Esta conta Google ja esta vinculada a outro usuario.';
+      }
+
+      if (e.code == 'requires-recent-login') {
+        return 'Por seguranca, entre novamente com sua senha antes de vincular o Google.';
+      }
+
+      return 'Erro ao vincular conta Google: ${e.message}';
+    } catch (e) {
+      return 'Erro inesperado ao vincular Google: $e';
+    }
+  }
+
   Future<void> sendPasswordResetEmail({required String email}) async {
     await _auth.sendPasswordResetEmail(email: email);
   }
