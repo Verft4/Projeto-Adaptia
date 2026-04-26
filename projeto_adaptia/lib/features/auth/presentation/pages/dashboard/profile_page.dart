@@ -30,7 +30,12 @@ class ProfilePage extends StatelessWidget {
       ),
       body: BlocConsumer<AuthCubit, AuthState>(
         listener: (context, state) {
-          if (state is AccountDeletedSuccess) {
+          if (state is LoggedOutSuccess) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Voce saiu da conta.')),
+            );
+            context.go(AppRoutes.login);
+          } else if (state is AccountDeletedSuccess) {
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(content: Text('Conta deletada com sucesso.')),
             );
@@ -117,6 +122,28 @@ class ProfilePage extends StatelessWidget {
                   title: Text(
                     'Alterar senha',
                     style: TextStyle(color: Colors.grey.shade500),
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  tileColor: const Color(0xFFF8FBFD),
+                ),
+                const SizedBox(height: 12),
+                ListTile(
+                  onTap: () {
+                    Navigator.of(sheetContext).pop();
+                    context.read<AuthCubit>().logout();
+                  },
+                  leading: const Icon(
+                    Icons.logout,
+                    color: Color(0xFF1E293B),
+                  ),
+                  title: const Text(
+                    'Deslogar da conta',
+                    style: TextStyle(
+                      color: Color(0xFF1E293B),
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(16),

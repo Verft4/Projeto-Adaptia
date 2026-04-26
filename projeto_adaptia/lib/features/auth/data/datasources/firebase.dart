@@ -61,10 +61,11 @@ class AuthService {
   }
 
   Future<String?> loginComGoogle() async {
+    GoogleSignInAccount? googleUser;
     try {
       await _googleSignIn.initialize();
 
-      final GoogleSignInAccount googleUser = await _googleSignIn.authenticate();
+      googleUser = await _googleSignIn.authenticate();
 
       final List<String> scopes = ['email', 'profile'];
 
@@ -81,11 +82,31 @@ class AuthService {
         idToken: idToken,
       );
 
+      final currentUser = _auth.currentUser;
+      final alreadyLinkedToGoogle =
+          currentUser?.providerData.any(
+            (provider) => provider.providerId == GoogleAuthProvider.PROVIDER_ID,
+          ) ??
+          false;
+      final isSameEmail =
+          currentUser?.email?.toLowerCase() == googleUser.email.toLowerCase();
+
+      if (currentUser != null && !alreadyLinkedToGoogle && isSameEmail) {
+        await currentUser.linkWithCredential(credential);
+        await garantirUsuarioAtualNoFirestore();
+        return null;
+      }
+
       await _auth.signInWithCredential(credential);
       await garantirUsuarioAtualNoFirestore();
 
       return null;
     } on FirebaseAuthException catch (e) {
+      if (e.code == 'provider-already-linked') {
+        await garantirUsuarioAtualNoFirestore();
+        return null;
+      }
+
       return 'Erro no Firebase: ${e.message}';
     } catch (e) {
       return 'Erro inesperado ao logar com o Google: $e';
@@ -98,6 +119,11 @@ class AuthService {
 
   Future<void> resetPassword({required String newPassword}) async {
     await _auth.currentUser?.updatePassword(newPassword);
+  }
+
+  Future<void> logout() async {
+    await _googleSignIn.signOut();
+    await _auth.signOut();
   }
 
   Future<void> deletarContaAtual() async {
