@@ -92,7 +92,7 @@ class _LoginPageState extends State<LoginPage> {
                           height: 50, 
                           child: OutlinedButton.icon(
                             icon: const Icon(Icons.g_mobiledata, size: 32),
-                            label: const Text('Continuar com o Google'),
+                            label: const Text('Entrar com Google'),
                             onPressed: isLoading
                                 ? null 
                                 : () => context.read<AuthCubit>().loginWithGoogle(),

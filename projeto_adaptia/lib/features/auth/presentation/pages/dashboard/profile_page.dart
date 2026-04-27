@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:go_router/go_router.dart';
 import 'package:projeto_adaptia/core/theme/app_colors.dart';
 import 'package:projeto_adaptia/core/routes/app_routes.dart';
@@ -11,15 +10,6 @@ import 'package:projeto_adaptia/features/auth/presentation/pages/dashboard/edit_
 
 class ProfilePage extends StatelessWidget {
   const ProfilePage({super.key});
-
-  bool _isGoogleLinked() {
-    final currentUser = FirebaseAuth.instance.currentUser;
-    if (currentUser == null) return false;
-
-    return currentUser.providerData.any(
-      (provider) => provider.providerId == GoogleAuthProvider.PROVIDER_ID,
-    );
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -32,7 +22,12 @@ class ProfilePage extends StatelessWidget {
         elevation: 0,
         actions: [
           IconButton(
-            onPressed: () => _showProfileSettings(context),
+            onPressed: () {
+              final state = context.read<AuthCubit>().state;
+              if (state is AuthSuccess) {
+                _showProfileSettings(context, state.user);
+              }
+            },
             icon: const Icon(Icons.settings_outlined),
             tooltip: 'Configuracoes do perfil',
           ),
@@ -99,9 +94,8 @@ class ProfilePage extends StatelessWidget {
     );
   }
 
-  void _showProfileSettings(BuildContext context) {
-    final isGoogleLinked = _isGoogleLinked();
-
+  void _showProfileSettings(BuildContext context, UserEntity user) {
+    final isGoogleLinked = user.googleLinked;
     showModalBottomSheet<void>(
       context: context,
       backgroundColor: Colors.white,
@@ -265,7 +259,9 @@ class ProfilePage extends StatelessWidget {
 class _ProfileContent extends StatefulWidget {
   final UserEntity user;
 
-  const _ProfileContent({required this.user});
+  const _ProfileContent({
+    required this.user,
+  });
 
   @override
   State<_ProfileContent> createState() => _ProfileContentState();

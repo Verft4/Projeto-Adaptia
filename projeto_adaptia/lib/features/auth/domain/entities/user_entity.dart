@@ -5,6 +5,7 @@ class UserEntity {
   final String headline;
   final String bio;
   final String avatar;
+  final bool googleLinked;
 
   const UserEntity({
     required this.id,
@@ -13,5 +14,6 @@ class UserEntity {
     this.headline = '',
     this.bio = '',
     this.avatar = '',
+    this.googleLinked = false,
   });
 }

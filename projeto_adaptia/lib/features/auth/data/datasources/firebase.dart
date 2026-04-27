@@ -47,13 +47,13 @@ class AuthService {
       await _criarUsuarioNoFirestore(
         user: cred.user!,
         nomeOverride: nome,
+        googleLinkedOverride: false,
       ); // 👈
 
       return null;
     } on FirebaseAuthException catch (e) {
       if (e.code == 'weak-password') return 'A senha fornecida é muito fraca.';
-      if (e.code == 'email-already-in-use')
-        return 'Já existe uma conta com este e-mail.';
+      if (e.code == 'email-already-in-use') return 'Já existe uma conta com este e-mail.';
       return 'Erro ao cadastrar: ${e.message}';
     } catch (e) {
       return 'Erro desconhecido: $e';
@@ -61,50 +61,16 @@ class AuthService {
   }
 
   Future<String?> loginComGoogle() async {
-    GoogleSignInAccount? googleUser;
     try {
-      await _googleSignIn.initialize();
+      final googleAuthCredential = await _obterGoogleCredential();
 
-      googleUser = await _googleSignIn.authenticate();
-
-      final List<String> scopes = ['email', 'profile'];
-
-      final clientAuth =
-          await googleUser.authorizationClient.authorizationForScopes(scopes) ??
-          await googleUser.authorizationClient.authorizeScopes(scopes);
-
-      final String? idToken =
-          googleUser.authentication.idToken; // Identidade (Síncrono)
-      final String accessToken = clientAuth.accessToken; // Permissões
-
-      final AuthCredential credential = GoogleAuthProvider.credential(
-        accessToken: accessToken,
-        idToken: idToken,
-      );
-
-      final currentUser = _auth.currentUser;
-      final alreadyLinkedToGoogle =
-          currentUser?.providerData.any(
-            (provider) => provider.providerId == GoogleAuthProvider.PROVIDER_ID,
-          ) ??
-          false;
-      final isSameEmail =
-          currentUser?.email?.toLowerCase() == googleUser.email.toLowerCase();
-
-      if (currentUser != null && !alreadyLinkedToGoogle && isSameEmail) {
-        await currentUser.linkWithCredential(credential);
-        await garantirUsuarioAtualNoFirestore();
-        return null;
-      }
-
-      await _auth.signInWithCredential(credential);
+      await _auth.signInWithCredential(googleAuthCredential);
       await garantirUsuarioAtualNoFirestore();
-
       return null;
     } on FirebaseAuthException catch (e) {
-      if (e.code == 'provider-already-linked') {
-        await garantirUsuarioAtualNoFirestore();
-        return null;
+      if (e.code == 'account-exists-with-different-credential') {
+        await _googleSignIn.signOut();
+        return 'Este e-mail já possui uma conta com senha. Entre com e-mail e senha e depois vincule o Google no perfil.';
       }
 
       return 'Erro no Firebase: ${e.message}';
@@ -252,6 +218,7 @@ class AuthService {
   Future<void> _criarUsuarioNoFirestore({
     required User user,
     String? nomeOverride,
+    bool? googleLinkedOverride,
   }) async {
     final docRef = _firestore.collection('usuarios').doc(user.uid);
     final docSnap = await docRef.get();
@@ -264,6 +231,7 @@ class AuthService {
         'headline': '',
         'bio': '',
         'avatar': '',
+        'googleLinked': googleLinkedOverride ?? _hasGoogleProvider(user),
         'criadoEm': FieldValue.serverTimestamp(),
       });
       return;
@@ -285,6 +253,29 @@ class AuthService {
         'bio': dadosAtuais['bio'] ?? '',
       if (dadosAtuais.containsKey('avatar'))
         'avatar': dadosAtuais['avatar'] ?? '',
+      'googleLinked': _hasGoogleProvider(user),
     }, SetOptions(merge: true));
+  }
+
+  Future<OAuthCredential> _obterGoogleCredential() async {
+    await _googleSignIn.initialize();
+
+    final googleUser = await _googleSignIn.authenticate();
+    final scopes = ['email', 'profile'];
+    final clientAuth =
+        await googleUser.authorizationClient.authorizationForScopes(scopes) ??
+        await googleUser.authorizationClient.authorizeScopes(scopes);
+
+    final credential = GoogleAuthProvider.credential(
+      accessToken: clientAuth.accessToken,
+    );
+
+    return credential;
+  }
+
+  bool _hasGoogleProvider(User user) {
+    return user.providerData.any(
+      (provider) => provider.providerId == GoogleAuthProvider.PROVIDER_ID,
+    );
   }
 }

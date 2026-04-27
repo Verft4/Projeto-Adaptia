@@ -98,7 +98,7 @@ class _RegisterPageState extends State<RegisterPage> {
                           height: 50,
                           child: OutlinedButton.icon(
                             icon: const Icon(Icons.g_mobiledata, size: 32),
-                            label: const Text('Continuar com o Google'),
+                            label: const Text('Criar conta com Google'),
                             onPressed:
                                 isLoading
                                     ? null

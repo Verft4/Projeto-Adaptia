@@ -10,6 +10,7 @@ class UserModel extends UserEntity {
     super.headline,
     super.bio,
     super.avatar,
+    super.googleLinked,
   });
 
   factory UserModel.fromJson(Map<String, dynamic> json) => UserModel(
@@ -19,6 +20,7 @@ class UserModel extends UserEntity {
     headline: json['headline'] as String? ?? '',
     bio: json['bio'] as String? ?? '',
     avatar: json['avatar'] as String? ?? '',
+    googleLinked: json['googleLinked'] as bool? ?? false,
   );
 
   Map<String, dynamic> toJson() => {
@@ -28,6 +30,7 @@ class UserModel extends UserEntity {
     'headline': headline,
     'bio': bio,
     'avatar': avatar,
+    'googleLinked': googleLinked,
   };
 }
 
