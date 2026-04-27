@@ -327,7 +327,11 @@ class _AIPageState extends State<AIPage> {
           );
         }
 
-        final user = (state as AuthSuccess).user;
+        if (state is! AuthSuccess) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
+        final user = state.user;
 
         return Center(
           child: SingleChildScrollView(

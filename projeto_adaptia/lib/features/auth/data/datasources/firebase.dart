@@ -144,7 +144,31 @@ class AuthService {
   }
 
   Future<void> resetPassword({required String newPassword}) async {
-    await _auth.currentUser?.updatePassword(newPassword);
+    final user = _auth.currentUser;
+    if (user == null) {
+      throw Exception('Nenhum usuário autenticado.');
+    }
+
+    final hasPasswordProvider = user.providerData.any(
+      (provider) => provider.providerId == EmailAuthProvider.PROVIDER_ID,
+    );
+
+    if (hasPasswordProvider) {
+      await user.updatePassword(newPassword);
+      return;
+    }
+
+    final email = user.email;
+    if (email == null || email.trim().isEmpty) {
+      throw Exception('Sua conta atual nao possui e-mail para criar uma senha.');
+    }
+
+    await user.linkWithCredential(
+      EmailAuthProvider.credential(
+        email: email,
+        password: newPassword,
+      ),
+    );
   }
 
   Future<void> logout() async {

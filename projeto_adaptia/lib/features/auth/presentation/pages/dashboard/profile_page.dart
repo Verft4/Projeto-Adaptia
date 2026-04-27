@@ -6,6 +6,7 @@ import 'package:projeto_adaptia/core/routes/app_routes.dart';
 import 'package:projeto_adaptia/features/auth/domain/entities/user_entity.dart';
 import 'package:projeto_adaptia/features/auth/presentation/cubit/auth_cubit.dart';
 import 'package:projeto_adaptia/features/auth/presentation/cubit/auth_state.dart';
+import 'package:projeto_adaptia/features/auth/presentation/pages/dashboard/change_password_page.dart';
 import 'package:projeto_adaptia/features/auth/presentation/pages/dashboard/edit_profile_page.dart';
 
 class ProfilePage extends StatelessWidget {
@@ -157,15 +158,29 @@ class ProfilePage extends StatelessWidget {
                 ),
                 const SizedBox(height: 12),
                 ListTile(
-                  enabled: false,
-                  leading: Icon(
+                  onTap: () async {
+                    Navigator.of(sheetContext).pop();
+                    await Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => BlocProvider.value(
+                          value: context.read<AuthCubit>(),
+                          child: const ChangePasswordPage(),
+                        ),
+                      ),
+                    );
+                  },
+                  leading: const Icon(
                     Icons.lock_outline,
-                    color: Colors.grey.shade500,
+                    color: Color(0xFF1E293B),
                   ),
-                  title: Text(
+                  title: const Text(
                     'Alterar senha',
-                    style: TextStyle(color: Colors.grey.shade500),
+                    style: TextStyle(
+                      color: Color(0xFF1E293B),
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
+                  subtitle: const Text('Altere sua senha ou crie uma nova'),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(16),
                   ),
