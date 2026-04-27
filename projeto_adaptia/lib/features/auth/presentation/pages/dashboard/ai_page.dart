@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import '../../cubit/auth_cubit.dart';
+import '../../cubit/auth_state.dart';
 
 class AIPage extends StatefulWidget {
   const AIPage({super.key});
@@ -18,6 +21,12 @@ class _AIPageState extends State<AIPage> {
   bool _isChatActive = false;
   final TextEditingController _textController = TextEditingController();
   final List<ChatMessage> _messages = [];
+
+  @override
+  void dispose() {
+    _textController.dispose();
+    super.dispose();
+  }
 
   void _startNewChat() {
     setState(() {
@@ -299,40 +308,67 @@ class _AIPageState extends State<AIPage> {
   }
 
   Widget _buildInitialArea() {
-    return Center(
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(horizontal: 24.0),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(Icons.auto_awesome, size: 64, color: Colors.lightBlue),
-            const SizedBox(height: 24),
-            const Text(
-              "Olá, Rafael!",
-              style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.black87),
+    return BlocBuilder<AuthCubit, AuthState>(
+      builder: (context, state) {
+        if (state is AuthLoading || state is AuthInitial) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
+        if (state is AuthError) {
+          return Center(
+            child: Padding(
+              padding: const EdgeInsets.all(24.0),
+              child: Text(
+                state.message,
+                textAlign: TextAlign.center,
+                style: const TextStyle(fontSize: 16, color: Colors.black87),
+              ),
             ),
-            const SizedBox(height: 8),
-            const Text(
-              "O que vamos fazer hoje?",
-              style: TextStyle(fontSize: 18, color: Colors.grey),
+          );
+        }
+
+        if (state is! AuthSuccess) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
+        final user = state.user;
+
+        return Center(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(horizontal: 24.0),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(Icons.auto_awesome, size: 64, color: Colors.lightBlue),
+                const SizedBox(height: 24),
+                Text(
+                  "Olá, ${user.nome}!",
+                  style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.black87),
+                ),
+                const SizedBox(height: 8),
+                const Text(
+                  "O que vamos fazer hoje?",
+                  style: TextStyle(fontSize: 18, color: Colors.grey),
+                ),
+                const SizedBox(height: 48),
+                _buildActionButton(
+                  "Criar plano de aula",
+                  Icons.extension,
+                  Colors.purple.shade300,
+                  () => _openProfileModal("Criar plano de aula"),
+                ),
+                const SizedBox(height: 16),
+                _buildActionButton(
+                  "Adaptar material",
+                  Icons.assignment_add,
+                  Colors.pink.shade300,
+                  () => _openProfileModal("Adaptar material"),
+                ),
+              ],
             ),
-            const SizedBox(height: 48),
-            _buildActionButton(
-              "Criar plano de aula",
-              Icons.extension,
-              Colors.purple.shade300,
-              () => _openProfileModal("Criar plano de aula"),
-            ),
-            const SizedBox(height: 16),
-            _buildActionButton(
-              "Adaptar material",
-              Icons.assignment_add,
-              Colors.pink.shade300,
-              () => _openProfileModal("Adaptar material"),
-            ),
-          ],
-        ),
-      ),
+          ),
+        );
+      },
     );
   }
 
