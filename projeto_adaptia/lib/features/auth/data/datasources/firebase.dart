@@ -47,7 +47,6 @@ class AuthService {
       await _criarUsuarioNoFirestore(
         user: cred.user!,
         nomeOverride: nome,
-        googleLinkedOverride: false,
       ); // 👈
 
       return null;
@@ -242,7 +241,6 @@ class AuthService {
   Future<void> _criarUsuarioNoFirestore({
     required User user,
     String? nomeOverride,
-    bool? googleLinkedOverride,
   }) async {
     final docRef = _firestore.collection('usuarios').doc(user.uid);
     final docSnap = await docRef.get();
@@ -255,7 +253,6 @@ class AuthService {
         'headline': '',
         'bio': '',
         'avatar': '',
-        'googleLinked': googleLinkedOverride ?? _hasGoogleProvider(user),
         'criadoEm': FieldValue.serverTimestamp(),
       });
       return;
@@ -277,7 +274,6 @@ class AuthService {
         'bio': dadosAtuais['bio'] ?? '',
       if (dadosAtuais.containsKey('avatar'))
         'avatar': dadosAtuais['avatar'] ?? '',
-      'googleLinked': _hasGoogleProvider(user),
     }, SetOptions(merge: true));
   }
 
@@ -295,11 +291,5 @@ class AuthService {
     );
 
     return credential;
-  }
-
-  bool _hasGoogleProvider(User user) {
-    return user.providerData.any(
-      (provider) => provider.providerId == GoogleAuthProvider.PROVIDER_ID,
-    );
   }
 }

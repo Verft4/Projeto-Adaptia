@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:go_router/go_router.dart';
 import 'package:projeto_adaptia/core/theme/app_colors.dart';
 import 'package:projeto_adaptia/core/routes/app_routes.dart';
@@ -96,7 +97,12 @@ class ProfilePage extends StatelessWidget {
   }
 
   void _showProfileSettings(BuildContext context, UserEntity user) {
-    final isGoogleLinked = user.googleLinked;
+    final currentUser = FirebaseAuth.instance.currentUser;
+    final isGoogleLinked =
+        currentUser?.providerData.any(
+          (provider) => provider.providerId == GoogleAuthProvider.PROVIDER_ID,
+        ) ??
+        false;
     showModalBottomSheet<void>(
       context: context,
       backgroundColor: Colors.white,
