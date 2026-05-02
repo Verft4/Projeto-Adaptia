@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:projeto_adaptia/core/theme/app_colors.dart';
 
 class StudentModel {
   String id;
@@ -296,7 +297,6 @@ class _ClassesPageState extends State<ClassesPage> {
             const SizedBox(height: 6),
             Text(c.institution),
             Text('${c.grade}º do fundamental'),
-            Text('${c.students.length} alunos'),
           ],
         ),
       ),
@@ -319,7 +319,7 @@ class _ClassesPageState extends State<ClassesPage> {
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.only(top: 50, left: 16, bottom: 16),
-                color: Colors.blue,
+                color: AppColors.primary,
                 child: const Text(
                   'Minhas turmas',
                   style: TextStyle(color: Colors.white, fontSize: 20),
