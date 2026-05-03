@@ -4,6 +4,7 @@ import 'package:google_sign_in/google_sign_in.dart';
 
 class AuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   final GoogleSignIn _googleSignIn = GoogleSignIn.instance;
 
@@ -13,6 +14,7 @@ class AuthService {
   }) async {
     try {
       await _auth.signInWithEmailAndPassword(email: email, password: password);
+      await garantirUsuarioAtualNoFirestore();
       return null; // Sucesso
     } on FirebaseAuthException catch (e) {
       if (e.code == 'invalid-credential' ||
@@ -50,8 +52,7 @@ class AuthService {
       return null;
     } on FirebaseAuthException catch (e) {
       if (e.code == 'weak-password') return 'A senha fornecida é muito fraca.';
-      if (e.code == 'email-already-in-use')
-        return 'Já existe uma conta com este e-mail.';
+      if (e.code == 'email-already-in-use') return 'Já existe uma conta com este e-mail.';
       return 'Erro ao cadastrar: ${e.message}';
     } catch (e) {
       return 'Erro desconhecido: $e';
@@ -60,32 +61,80 @@ class AuthService {
 
   Future<String?> loginComGoogle() async {
     try {
+      final googleAuthCredential = await _obterGoogleCredential();
+
+      await _auth.signInWithCredential(googleAuthCredential);
+      await garantirUsuarioAtualNoFirestore();
+      return null;
+    } on FirebaseAuthException catch (e) {
+      if (e.code == 'account-exists-with-different-credential') {
+        await _googleSignIn.signOut();
+        return 'Este e-mail já possui uma conta com senha. Entre com e-mail e senha e depois vincule o Google no perfil.';
+      }
+
+      return 'Erro no Firebase: ${e.message}';
+    } catch (e) {
+      return 'Erro inesperado ao logar com o Google: $e';
+    }
+  }
+
+  Future<String?> vincularContaGoogle() async {
+    final currentUser = _auth.currentUser;
+    if (currentUser == null) {
+      return 'Nenhum usuário autenticado.';
+    }
+
+    if (currentUser.email == null || currentUser.email!.trim().isEmpty) {
+      return 'Sua conta atual nao possui e-mail valido para vincular ao Google.';
+    }
+
+    GoogleSignInAccount? googleUser;
+    try {
       await _googleSignIn.initialize();
+      googleUser = await _googleSignIn.authenticate();
 
-      final GoogleSignInAccount googleUser = await _googleSignIn.authenticate();
+      if (googleUser.email.toLowerCase() != currentUser.email!.toLowerCase()) {
+        await _googleSignIn.signOut();
+        return 'Escolha a mesma conta Google cadastrada com o e-mail ${currentUser.email}.';
+      }
 
-      final List<String> scopes = ['email', 'profile'];
-
+      final scopes = ['email', 'profile'];
       final clientAuth =
           await googleUser.authorizationClient.authorizationForScopes(scopes) ??
           await googleUser.authorizationClient.authorizeScopes(scopes);
 
-      final String? idToken =
-          googleUser.authentication.idToken; // Identidade (Síncrono)
-      final String accessToken = clientAuth.accessToken; // Permissões
-
-      final AuthCredential credential = GoogleAuthProvider.credential(
-        accessToken: accessToken,
-        idToken: idToken,
+      final credential = GoogleAuthProvider.credential(
+        accessToken: clientAuth.accessToken,
+        idToken: googleUser.authentication.idToken,
       );
 
-      await _auth.signInWithCredential(credential);
+      final alreadyLinked = currentUser.providerData.any(
+        (provider) => provider.providerId == GoogleAuthProvider.PROVIDER_ID,
+      );
 
+      if (!alreadyLinked) {
+        await currentUser.linkWithCredential(credential);
+      }
+
+      await garantirUsuarioAtualNoFirestore();
       return null;
     } on FirebaseAuthException catch (e) {
-      return 'Erro no Firebase: ${e.message}';
+      if (e.code == 'provider-already-linked') {
+        await garantirUsuarioAtualNoFirestore();
+        return null;
+      }
+
+      if (e.code == 'credential-already-in-use') {
+        return 'Esta conta Google ja esta vinculada a outro usuario.';
+      }
+
+      if (e.code == 'requires-recent-login') {
+        return 'Por seguranca, entre novamente com sua senha antes de vincular o Google.';
+      }
+
+      return 'Erro ao vincular conta Google: ${e.message}';
     } catch (e) {
-      return 'Erro inesperado ao logar com o Google: $e';
+      return 'Erro inesperado ao vincular Google: $e';
     }
   }
 
@@ -94,16 +143,106 @@ class AuthService {
   }
 
   Future<void> resetPassword({required String newPassword}) async {
-    await _auth.currentUser?.updatePassword(newPassword);
+    final user = _auth.currentUser;
+    if (user == null) {
+      throw Exception('Nenhum usuário autenticado.');
+    }
+
+    final hasPasswordProvider = user.providerData.any(
+      (provider) => provider.providerId == EmailAuthProvider.PROVIDER_ID,
+    );
+
+    if (hasPasswordProvider) {
+      await user.updatePassword(newPassword);
+      return;
+    }
+
+    final email = user.email;
+    if (email == null || email.trim().isEmpty) {
+      throw Exception('Sua conta atual nao possui e-mail para criar uma senha.');
+    }
+
+    await user.linkWithCredential(
+      EmailAuthProvider.credential(
+        email: email,
+        password: newPassword,
+      ),
+    );
+  }
+
+  Future<void> logout() async {
+    await _googleSignIn.signOut();
+    await _auth.signOut();
+  }
+
+  Future<void> deletarContaAtual() async {
+    final user = _auth.currentUser;
+    if (user == null) {
+      throw Exception('Nenhum usuário autenticado.');
+    }
+
+    final uid = user.uid;
+
+    try {
+      await _firestore.collection('usuarios').doc(uid).delete();
+      await user.delete();
+    } on FirebaseAuthException catch (e) {
+      if (e.code == 'requires-recent-login') {
+        throw Exception(
+          'Por segurança, faça login novamente antes de deletar sua conta.',
+        );
+      }
+      throw Exception('Erro ao deletar conta: ${e.message}');
+    } on FirebaseException catch (e) {
+      if (e.code == 'permission-denied') {
+        throw Exception(
+          'Sem permissao para deletar este perfil no Firestore. Verifique as regras da colecao usuarios.',
+        );
+      }
+      throw Exception('Erro ao deletar dados do perfil: ${e.message}');
+    } catch (e) {
+      throw Exception('Erro ao deletar conta: $e');
+    }
+  }
+
+  Future<void> atualizarPerfilParticipante({
+    required String nome,
+    required String headline,
+    required String bio,
+    required String avatar,
+  }) async {
+    final user = _auth.currentUser;
+    if (user == null) {
+      throw Exception('Nenhum usuário autenticado.');
+    }
+
+    await user.updateDisplayName(nome);
+
+    await _firestore.collection('usuarios').doc(user.uid).set({
+      'uid': user.uid,
+      'nome': nome,
+      'email': user.email ?? '',
+      'headline': headline,
+      'bio': bio,
+      'avatar': avatar,
+      'atualizadoEm': FieldValue.serverTimestamp(),
+    }, SetOptions(merge: true));
+  }
+
+  Future<void> garantirUsuarioAtualNoFirestore() async {
+    final user = _auth.currentUser;
+    if (user == null) {
+      throw Exception('Nenhum usuário autenticado.');
+    }
+
+    await _criarUsuarioNoFirestore(user: user);
   }
 
   Future<void> _criarUsuarioNoFirestore({
     required User user,
     String? nomeOverride,
   }) async {
-    final docRef = FirebaseFirestore.instance
-        .collection('usuarios')
-        .doc(user.uid);
+    final docRef = _firestore.collection('usuarios').doc(user.uid);
     final docSnap = await docRef.get();
 
     if (!docSnap.exists) {
@@ -111,9 +250,46 @@ class AuthService {
         'uid': user.uid,
         'nome': nomeOverride ?? user.displayName ?? '',
         'email': user.email ?? '',
-        'cargo': '',
+        'headline': '',
+        'bio': '',
+        'avatar': '',
         'criadoEm': FieldValue.serverTimestamp(),
       });
+      return;
     }
+
+    final dadosAtuais = docSnap.data() ?? <String, dynamic>{};
+    final nomeAtualizado =
+        (dadosAtuais['nome'] as String?)?.trim().isNotEmpty == true
+        ? dadosAtuais['nome'] as String
+        : (nomeOverride ?? user.displayName ?? '');
+
+    await docRef.set({
+      'uid': user.uid,
+      'nome': nomeAtualizado,
+      'email': user.email ?? '',
+      if (dadosAtuais.containsKey('headline'))
+        'headline': dadosAtuais['headline'] ?? '',
+      if (dadosAtuais.containsKey('bio'))
+        'bio': dadosAtuais['bio'] ?? '',
+      if (dadosAtuais.containsKey('avatar'))
+        'avatar': dadosAtuais['avatar'] ?? '',
+    }, SetOptions(merge: true));
+  }
+
+  Future<OAuthCredential> _obterGoogleCredential() async {
+    await _googleSignIn.initialize();
+
+    final googleUser = await _googleSignIn.authenticate();
+    final scopes = ['email', 'profile'];
+    final clientAuth =
+        await googleUser.authorizationClient.authorizationForScopes(scopes) ??
+        await googleUser.authorizationClient.authorizeScopes(scopes);
+
+    final credential = GoogleAuthProvider.credential(
+      accessToken: clientAuth.accessToken,
+    );
+
+    return credential;
   }
 }

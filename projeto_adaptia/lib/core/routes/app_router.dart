@@ -77,9 +77,12 @@ final appRouter = GoRouter(
 
     // Dashboard Flow
     ShellRoute(
-      builder: (context, state, child) => DashboardLayout(
-        location: state.fullPath ?? '',
-        child: child,
+      builder: (context, state, child) => BlocProvider(
+        create: (_) => sl<AuthCubit>()..loadCurrentUser(),
+        child: DashboardLayout(
+          location: state.fullPath ?? '',
+          child: child,
+        ),
       ),
       routes: [
         GoRoute(

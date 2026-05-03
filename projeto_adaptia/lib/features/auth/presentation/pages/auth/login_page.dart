@@ -92,7 +92,7 @@ class _LoginPageState extends State<LoginPage> {
                           height: 50, 
                           child: OutlinedButton.icon(
                             icon: const Icon(Icons.g_mobiledata, size: 32),
-                            label: const Text('Continuar com o Google'),
+                            label: const Text('Entrar com Google'),
                             onPressed: isLoading
                                 ? null 
                                 : () => context.read<AuthCubit>().loginWithGoogle(),
@@ -109,13 +109,6 @@ class _LoginPageState extends State<LoginPage> {
                 TextButton(
                   onPressed: () => context.go(AppRoutes.register),
                   child: const Text('Não tem conta? Cadastre-se'),
-                ),
-
-                // TODO: Remover
-                const SizedBox(height: 16),
-                TextButton(
-                  onPressed: () => context.go(AppRoutes.dashboard),
-                  child: const Text('Ir para a dashboard'),
                 ),
               ],
             ),
