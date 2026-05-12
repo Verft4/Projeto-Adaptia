@@ -1,5 +1,9 @@
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
-
+import 'package:flutter_bloc/flutter_bloc.dart';
+import '../../../../../core/services/gemini_service.dart';
+import '../../cubit/auth_cubit.dart';
+import '../../cubit/auth_state.dart';
 class AIPage extends StatefulWidget {
   const AIPage({super.key});
 
@@ -10,20 +14,31 @@ class AIPage extends StatefulWidget {
 class ChatMessage {
   final String text;
   final bool isUser;
+  final PlatformFile? attachedFile;
 
-  ChatMessage({required this.text, required this.isUser});
+  ChatMessage({required this.text, required this.isUser, this.attachedFile});
 }
 
 class _AIPageState extends State<AIPage> {
   bool _isChatActive = false;
   final TextEditingController _textController = TextEditingController();
   final List<ChatMessage> _messages = [];
+  PlatformFile? _selectedFile;
+  final GeminiService _geminiService = GeminiService();
+  bool _isLoading = false;
+
+  @override
+  void dispose() {
+    _textController.dispose();
+    super.dispose();
+  }
 
   void _startNewChat() {
     setState(() {
       _isChatActive = false;
       _messages.clear();
       _textController.clear();
+      _selectedFile = null;
     });
   }
 
@@ -33,23 +48,55 @@ class _AIPageState extends State<AIPage> {
     });
   }
 
-  void _sendMessage(String text) {
-    if (text.trim().isEmpty) return;
+  Future<void> _pickFile() async {
+    FilePickerResult? result = await FilePicker.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: ['pdf'],
+      withData: true,
+    );
+
+    if (result != null) {
+      setState(() {
+        _selectedFile = result.files.single;
+      });
+    }
+  }
+
+  void _sendMessage(String text) async {
+    if (text.trim().isEmpty && _selectedFile == null) return;
+    
+    final fileToSend = _selectedFile;
+    
     setState(() {
-      _messages.add(ChatMessage(text: text, isUser: true));
+      _messages.add(ChatMessage(
+        text: text.isEmpty ? 'Arquivo enviado.' : text, 
+        isUser: true,
+        attachedFile: fileToSend,
+      ));
       _textController.clear();
+      _selectedFile = null;
+      _isLoading = true;
     });
-    // Simulate AI response
-    Future.delayed(const Duration(seconds: 1), () {
-      if (mounted) {
-        setState(() {
-          _messages.add(ChatMessage(
-            text: "Esta é uma resposta mockada para: '$text'. Como posso ajudar mais com este tema?",
-            isUser: false,
-          ));
-        });
-      }
-    });
+
+    if (!_isChatActive) {
+      _startChat();
+    }
+
+    final response = await _geminiService.sendMessage(
+      text, 
+      fileBytes: fileToSend?.bytes,
+      fileName: fileToSend?.name,
+    );
+
+    if (mounted) {
+      setState(() {
+        _isLoading = false;
+        _messages.add(ChatMessage(
+          text: response,
+          isUser: false,
+        ));
+      });
+    }
   }
 
   void _openProfileModal(String action) {
@@ -299,40 +346,67 @@ class _AIPageState extends State<AIPage> {
   }
 
   Widget _buildInitialArea() {
-    return Center(
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(horizontal: 24.0),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(Icons.auto_awesome, size: 64, color: Colors.lightBlue),
-            const SizedBox(height: 24),
-            const Text(
-              "Olá, Rafael!",
-              style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.black87),
+    return BlocBuilder<AuthCubit, AuthState>(
+      builder: (context, state) {
+        if (state is AuthLoading || state is AuthInitial) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
+        if (state is AuthError) {
+          return Center(
+            child: Padding(
+              padding: const EdgeInsets.all(24.0),
+              child: Text(
+                state.message,
+                textAlign: TextAlign.center,
+                style: const TextStyle(fontSize: 16, color: Colors.black87),
+              ),
             ),
-            const SizedBox(height: 8),
-            const Text(
-              "O que vamos fazer hoje?",
-              style: TextStyle(fontSize: 18, color: Colors.grey),
+          );
+        }
+
+        if (state is! AuthSuccess) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
+        final user = state.user;
+
+        return Center(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(horizontal: 24.0),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(Icons.auto_awesome, size: 64, color: Colors.lightBlue),
+                const SizedBox(height: 24),
+                Text(
+                  "Olá, ${user.nome}!",
+                  style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.black87),
+                ),
+                const SizedBox(height: 8),
+                const Text(
+                  "O que vamos fazer hoje?",
+                  style: TextStyle(fontSize: 18, color: Colors.grey),
+                ),
+                const SizedBox(height: 48),
+                _buildActionButton(
+                  "Criar plano de aula",
+                  Icons.extension,
+                  Colors.purple.shade300,
+                  () => _openProfileModal("Criar plano de aula"),
+                ),
+                const SizedBox(height: 16),
+                _buildActionButton(
+                  "Adaptar material",
+                  Icons.assignment_add,
+                  Colors.pink.shade300,
+                  () => _openProfileModal("Adaptar material"),
+                ),
+              ],
             ),
-            const SizedBox(height: 48),
-            _buildActionButton(
-              "Criar plano de aula",
-              Icons.extension,
-              Colors.purple.shade300,
-              () => _openProfileModal("Criar plano de aula"),
-            ),
-            const SizedBox(height: 16),
-            _buildActionButton(
-              "Adaptar material",
-              Icons.assignment_add,
-              Colors.pink.shade300,
-              () => _openProfileModal("Adaptar material"),
-            ),
-          ],
-        ),
-      ),
+          ),
+        );
+      },
     );
   }
 
@@ -401,13 +475,41 @@ class _AIPageState extends State<AIPage> {
                 bottomLeft: !message.isUser ? const Radius.circular(4) : const Radius.circular(16),
               ),
             ),
-            child: Text(
-              message.text,
-              style: TextStyle(
-                color: message.isUser ? Colors.white : Colors.black87,
-                fontSize: 15,
-                height: 1.4
-              ),
+            child: Column(
+              crossAxisAlignment: message.isUser ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+              children: [
+                if (message.attachedFile != null)
+                  Container(
+                    margin: const EdgeInsets.only(bottom: 8),
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: message.isUser ? Colors.white.withOpacity(0.2) : Colors.black.withOpacity(0.05),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.picture_as_pdf, color: message.isUser ? Colors.white : Colors.redAccent, size: 20),
+                        const SizedBox(width: 8),
+                        Flexible(
+                          child: Text(
+                            message.attachedFile!.name,
+                            style: TextStyle(color: message.isUser ? Colors.white : Colors.black87, fontSize: 12),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                Text(
+                  message.text,
+                  style: TextStyle(
+                    color: message.isUser ? Colors.white : Colors.black87,
+                    fontSize: 15,
+                    height: 1.4
+                  ),
+                ),
+              ],
             ),
           ),
         );
@@ -428,56 +530,106 @@ class _AIPageState extends State<AIPage> {
           )
         ]
       ),
-      child: Row(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          Expanded(
-            child: TextField(
-              controller: _textController,
-              decoration: InputDecoration(
-                hintText: 'Digite para pesquisar',
-                hintStyle: TextStyle(color: Colors.grey.shade400),
-                contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(24),
-                  borderSide: BorderSide(color: Colors.grey.shade300),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(24),
-                  borderSide: BorderSide(color: Colors.grey.shade300),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(24),
-                  borderSide: const BorderSide(color: Colors.lightBlue),
+          if (_selectedFile != null)
+            Container(
+              margin: const EdgeInsets.only(bottom: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: Colors.grey.shade100,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.grey.shade300),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.picture_as_pdf, color: Colors.redAccent),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      _selectedFile!.name,
+                      style: const TextStyle(fontSize: 14),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close, size: 20, color: Colors.grey),
+                    onPressed: () {
+                      setState(() {
+                        _selectedFile = null;
+                      });
+                    },
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
+                  )
+                ],
+              ),
+            ),
+          Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: _textController,
+                  onChanged: (text) => setState(() {}),
+                  decoration: InputDecoration(
+                    hintText: 'Digite para pesquisar',
+                    hintStyle: TextStyle(color: Colors.grey.shade400),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(24),
+                      borderSide: BorderSide(color: Colors.grey.shade300),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(24),
+                      borderSide: BorderSide(color: Colors.grey.shade300),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(24),
+                      borderSide: const BorderSide(color: Colors.lightBlue),
+                    ),
+                  ),
+                  onSubmitted: (val) {
+                    if (val.isNotEmpty || _selectedFile != null) _sendMessage(val);
+                  },
                 ),
               ),
-              onSubmitted: (val) {
-                if (!_isChatActive && val.isNotEmpty) _startChat();
-                _sendMessage(val);
-              },
-            ),
-          ),
-          const SizedBox(width: 12),
-          CircleAvatar(
-            backgroundColor: Colors.lightBlue,
-            radius: 20,
-            child: IconButton(
-              icon: const Icon(Icons.attach_file, color: Colors.white, size: 20),
-              onPressed: () {},
-            ),
-          ),
-          const SizedBox(width: 8),
-          CircleAvatar(
-            backgroundColor: Colors.lightBlue,
-            radius: 20,
-            child: IconButton(
-              icon: const Icon(Icons.mic, color: Colors.white, size: 20),
-              onPressed: () {
-                if (_textController.text.isNotEmpty) {
-                    if (!_isChatActive) _startChat();
-                    _sendMessage(_textController.text);
-                }
-              },
-            ),
+              const SizedBox(width: 12),
+              CircleAvatar(
+                backgroundColor: Colors.lightBlue,
+                radius: 20,
+                child: IconButton(
+                  icon: const Icon(Icons.attach_file, color: Colors.white, size: 20),
+                  onPressed: _pickFile,
+                ),
+              ),
+              const SizedBox(width: 8),
+              CircleAvatar(
+                backgroundColor: Colors.lightBlue,
+                radius: 20,
+                child: _isLoading 
+                  ? const Padding(
+                      padding: EdgeInsets.all(10.0),
+                      child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                    )
+                  : IconButton(
+                      icon: Icon(
+                        _textController.text.isNotEmpty || _selectedFile != null 
+                            ? Icons.send 
+                            : Icons.mic, 
+                        color: Colors.white, 
+                        size: 20
+                      ),
+                      onPressed: () {
+                        if (_textController.text.isNotEmpty || _selectedFile != null) {
+                            _sendMessage(_textController.text);
+                        } else {
+                            // Implementar lógica do mic futuramente
+                        }
+                      },
+                    ),
+              ),
+            ],
           ),
         ],
       ),

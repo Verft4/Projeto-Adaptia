@@ -1,14 +1,26 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'firebase.dart';
 import '../models/user_model.dart';
 
 abstract class AuthRemoteDatasource {
   Future<UserModel> getUsuarioAtual();
+  Future<UserModel> atualizarPerfil({
+    required String nome,
+    required String headline,
+    required String bio,
+    required String avatar,
+  });
+  Future<void> deletarConta();
 }
 
 class AuthRemoteDatasourceImpl implements AuthRemoteDatasource {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final AuthService _authService;
+
+  AuthRemoteDatasourceImpl({required AuthService authService})
+    : _authService = authService;
 
   /// Lê o documento do usuário atual no Firestore e retorna um UserModel.
   /// O AuthService já garantiu que o doc existe antes desta chamada.
@@ -17,9 +29,46 @@ class AuthRemoteDatasourceImpl implements AuthRemoteDatasource {
     final user = _auth.currentUser;
     if (user == null) throw Exception('Nenhum usuário autenticado.');
 
+    await _authService.garantirUsuarioAtualNoFirestore();
+
     final doc = await _firestore.collection('usuarios').doc(user.uid).get();
-    if (!doc.exists) throw Exception('Usuário não encontrado no Firestore.');
+    if (!doc.exists) {
+      throw Exception('Nao foi possivel sincronizar o usuario no Firestore.');
+    }
 
     return UserModel.fromJson(doc.data()!);
+  }
+
+  @override
+  Future<UserModel> atualizarPerfil({
+    required String nome,
+    required String headline,
+    required String bio,
+    required String avatar,
+  }) async {
+    final user = _auth.currentUser;
+    if (user == null) throw Exception('Nenhum usuário autenticado.');
+
+    await _authService.atualizarPerfilParticipante(
+      nome: nome,
+      headline: headline,
+      bio: bio,
+      avatar: avatar,
+    );
+
+    final doc = await _firestore.collection('usuarios').doc(user.uid).get();
+    if (!doc.exists) {
+      throw Exception('Nao foi possivel atualizar o perfil.');
+    }
+
+    return UserModel.fromJson(doc.data()!);
+  }
+
+  @override
+  Future<void> deletarConta() async {
+    final user = _auth.currentUser;
+    if (user == null) throw Exception('Nenhum usuário autenticado.');
+
+    await _authService.deletarContaAtual();
   }
 }

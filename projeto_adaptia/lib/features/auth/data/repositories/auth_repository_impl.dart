@@ -13,6 +13,11 @@ class AuthRepositoryImpl implements AuthRepository {
   });
 
   @override
+  Future<UserEntity> getCurrentUser() async {
+    return await datasource.getUsuarioAtual();
+  }
+
+  @override
   Future<UserEntity> login({
     required String email,
     required String password,
@@ -42,6 +47,38 @@ class AuthRepositoryImpl implements AuthRepository {
     final error = await authService.loginComGoogle();
     if (error != null) throw Exception(error);
     return await datasource.getUsuarioAtual();
+  }
+
+  @override
+  Future<UserEntity> linkGoogleAccount() async {
+    final error = await authService.vincularContaGoogle();
+    if (error != null) throw Exception(error);
+    return await datasource.getUsuarioAtual();
+  }
+
+  @override
+  Future<UserEntity> updateProfile({
+    required String nome,
+    required String headline,
+    required String bio,
+    required String avatar,
+  }) async {
+    return await datasource.atualizarPerfil(
+      nome: nome,
+      headline: headline,
+      bio: bio,
+      avatar: avatar,
+    );
+  }
+
+  @override
+  Future<void> logout() async {
+    await authService.logout();
+  }
+
+  @override
+  Future<void> deleteAccount() async {
+    await datasource.deletarConta();
   }
 
   @override
